@@ -3,20 +3,11 @@
  #include <string.h>
  #include <unistd.h>
 
-#define ETHERNET "lo"
-
 int main(int argc, char** argv) {
     char* command = malloc(sizeof(char) * 100);
     char* path = malloc(sizeof(char) * 100);
 
-    int socket, i;
-    char buffer[] = "Abajur";
-
-    socket = CriaRawSocket(ETHERNET);
-
     while (1) {
-        send(socket, buffer, sizeof(buffer), 0);
-        
         scanf("%s", command);
         if (strcmp(command, "cd") == 0) {
             scanf("%s", path);
