@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     int socket;
     char* buffer = malloc(sizeof(char) * 1024);
 
-    socket = CriaRawSocket(ETHERNET);
+    socket = ConexaoRawSocket(ETHERNET);
 
     while (1) {
         if (recv(socket, buffer, sizeof(buffer), 0)) {
