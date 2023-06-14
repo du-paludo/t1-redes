@@ -20,6 +20,11 @@ int ConexaoRawSocket(char *device) {
         printf("Erro no Socket\n");
         exit(-1);
     }
+    soquete = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));  	/*cria socket*/
+    if (soquete == -1) {
+        printf("Erro no Socket\n");
+        exit(-1);
+    }
 
     memset(&ir, 0, sizeof(struct ifreq));  	/*dispositivo eth0*/
     memcpy(ir.ifr_name, device, sizeof(device));
