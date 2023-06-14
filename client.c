@@ -1,8 +1,9 @@
- #include <stdio.h>
- #include <stdlib.h>
- #include <string.h>
- #include <unistd.h>
- #include "ConexaoRawSocket.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include "ConexaoRawSocket.h"
+#include "packet.h"
 
 #define ETHERNET "lo"
 
@@ -11,18 +12,20 @@ int main(int argc, char** argv) {
     char* path = malloc(sizeof(char) * 100);
 
     int socket, i;
-    char buffer[] = "Abajur";
+    char* data = "Abajur";
+    unsigned char* packet = makePacket(data, strlen(data) + 1, 1, 1);
 
     socket = ConexaoRawSocket(ETHERNET);
+    printf("%s\n", packet);
 
     while (1) {
-        send(socket, buffer, sizeof(buffer), 0);
+        send(socket, packet, sizeof(packet), 0);
         
-        scanf("%s", command);
-        if (strcmp(command, "cd") == 0) {
-            scanf("%s", path);
-            chdir(path);
-        }
+        // scanf("%s", command);
+        // if (strcmp(command, "cd") == 0) {
+        //     scanf("%s", path);
+        //     chdir(path);
+        // }
     }
 
     /* if (argc > 1) {

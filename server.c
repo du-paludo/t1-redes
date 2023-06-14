@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
     char* path = malloc(sizeof(char) * 100);
 
     int socket;
-    char* buffer = malloc(sizeof(char) * 1024);
+    unsigned char* buffer = malloc(sizeof(char) * 1024);
 
     socket = ConexaoRawSocket(ETHERNET);
 

@@ -1,19 +1,43 @@
 #include "packet.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-typedef struct {
-    unsigned char startDelimiter:8;  // 011111110
-    unsigned char size:6;
-    unsigned char sequence:6;
-    unsigned char type:4;
-    unsigned char data[MESSAGE_SIZE];
-    unsigned char crc:8;
-} Pacote;
+// packet_t* makePacket(unsigned char *data, int size, int sequence, int type) {
+//     packet_t* p = malloc(sizeof(packet_t));
+//     p->startDelimiter = START_DELIMITER;
+//     p->size = size;
+//     p->sequence = sequence;
+//     p->type = type;
+//     memcpy(p->data, data, size);
+//     p->crc = 0x00;
+    
+//     return p;
+// }
 
-void makePacket(Pacote *p, unsigned char *dados, int tamanho, int sequencia, int tipo) {
-    p->marcadorDeInicio = 0x7E;
-    p->tamanho = tamanho;
-    p->sequencia = sequencia;
-    p->tipo = tipo;
-    memcpy(p->dados, dados, tamanho);
+unsigned char* makePacket(char *data, int size, int sequence, int type) {
+    packet_t* p = malloc(sizeof(packet_t));
+    unsigned char *packet = malloc(sizeof(1024));
+
+    p->startDelimiter = START_DELIMITER;
+    p->size = size;
+    p->sequence = sequence;
+    p->type = type;
+    memcpy(p->data, data, size);
     p->crc = 0x00;
+
+    packet[0] = p->startDelimiter;
+
+    unsigned char temp;
+    temp = (p->size << 2) | (p->sequence >> 4);
+    packet[1] = temp;
+
+    temp = ((p->sequence & 0x0F) << 4) | (p->type);
+    packet[2] = temp;
+    
+    memcpy(packet + 3, p->data, MESSAGE_SIZE);
+
+    packet[3 + MESSAGE_SIZE] = p->crc;
+
+    return packet;
 }

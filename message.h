@@ -17,7 +17,7 @@
 
 #define TAM_BUFFER_DADOS   32
 
-struct mensagem{
+struct mensagem {
     unsigned char ini:8;
     unsigned char tam:5;
     unsigned char sequencia:6;
