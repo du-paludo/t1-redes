@@ -14,6 +14,8 @@ struct packet {
 };
 typedef struct packet packet_t;
 
-unsigned char* makePacket(char *data, int size, int sequence, int type);
+packet_t* makePacket(char *data, int size, int sequence, int type);
+
+unsigned char* packetToBuffer(packet_t *p);
 
 #endif

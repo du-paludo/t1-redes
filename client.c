@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "ConexaoRawSocket.h"
+#include "rawSocketConnection.h"
 #include "packet.h"
 
 #define ETHERNET "lo"
@@ -13,13 +14,16 @@ int main(int argc, char** argv) {
 
     int socket, i;
     char* data = "Abajur";
-    unsigned char* packet = makePacket(data, strlen(data) + 1, 1, 1);
+    packet_t* packet = makePacket(data, strlen(data) + 1, 1, 1);
+    unsigned char *buffer = malloc(sizeof(unsigned char)*1024);
 
-    socket = ConexaoRawSocket(ETHERNET);
-    printf("%s\n", packet);
+    socket = rawSocketConnection(ETHERNET);
+    printf("%s\n", packet->data);
+
+    buffer = packetToBuffer(packet);
 
     while (1) {
-        send(socket, packet, sizeof(packet), 0);
+        send(socket, buffer, sizeof(packet), 0);
         
         // scanf("%s", command);
         // if (strcmp(command, "cd") == 0) {
