@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 
-
 int rawSocketConnection(char *device);
 
 #endif

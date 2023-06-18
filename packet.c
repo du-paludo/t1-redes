@@ -15,7 +15,7 @@
 //     return p;
 // }
 
-packet_t* makePacket(char *data, int size, int sequence, int type) {
+packet_t* makePacket(unsigned char *data, int size, int sequence, int type) {
     packet_t* p = malloc(sizeof(packet_t));
 
     p->startDelimiter = START_DELIMITER;
@@ -29,20 +29,20 @@ packet_t* makePacket(char *data, int size, int sequence, int type) {
 }
 
 unsigned char* packetToBuffer(packet_t *p){
-    unsigned char *message = malloc(sizeof(1024));
+    unsigned char startDelimiter = p->startDelimiter;
+    unsigned int size = p->size;
+    unsigned int sequence = p->sequence;
+    unsigned int type = p->type;
+    unsigned char* message = malloc(sizeof(unsigned char) * 63);
 
-    message[0] = START_DELIMITER;
+    for (int i = 0; i < 63; i++) {
+        message[i] = p->data[i];
+    }
 
-    unsigned char temp;
-    temp = (p->size << 2) | (p->sequence >> 4);
-    message[1] = temp;
-
-    temp = ((p->sequence & 0x0F) << 4) | (p->type);
-    message[2] = temp;
-    
-    memcpy(message + 3, p->data, MESSAGE_SIZE);
-
-    message[3 + MESSAGE_SIZE] = p->crc;
+    if (startDelimiter == '~') {
+        if (type == 1)
+        printf("%s", message);
+    }
 
     return message;
 }

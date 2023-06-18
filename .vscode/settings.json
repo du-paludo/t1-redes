@@ -55,6 +55,9 @@
   "C_Cpp_Runner.useLeakSanitizer": false,
   "C_Cpp_Runner.showCompilationTime": false,
   "files.associations": {
-    "packet.h": "c"
+    "packet.h": "c",
+    "unistd.h": "c",
+    "rawsocketconnection.h": "c",
+    "stdlib.h": "c"
   }
 }

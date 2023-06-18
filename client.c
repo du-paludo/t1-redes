@@ -5,30 +5,83 @@
 #include "ConexaoRawSocket.h"
 #include "rawSocketConnection.h"
 #include "packet.h"
+#include "fileHelper.h"
 
 #define ETHERNET "lo"
 
+
+char** parseCommand(char* command) {
+    int capacity = 2;
+    char** commandParsed = (char**) malloc(capacity * sizeof(char*));
+    char* copy = malloc(sizeof(char)*200);
+    strcpy(copy, command);
+    char* token;
+    token = strtok(copy, " ");
+    printf("fssfs", copy);
+    int numberOfParts = 0;
+
+    while (token != NULL) { 
+        if (numberOfParts >= capacity) {
+            capacity += 1;
+            commandParsed = (char**) realloc(commandParsed, capacity * sizeof(char*));
+        }
+
+        commandParsed[numberOfParts] = strdup(token);
+        printf("%s", commandParsed[numberOfParts]);
+        numberOfParts++;
+        token = strtok(NULL, " ");
+    }
+
+    free(copy);
+    return commandParsed;
+}
+
 int main(int argc, char** argv) {
     char* command = malloc(sizeof(char) * 100);
-    char* path = malloc(sizeof(char) * 100);
+    char** commandParsed;
 
-    int socket, i;
-    char* data = "Abajur";
-    packet_t* packet = makePacket(data, strlen(data) + 1, 1, 1);
-    unsigned char *buffer = malloc(sizeof(unsigned char)*1024);
+    char* file_name = malloc(sizeof(char) * 100); 
+    FILE* file;
+    // char* path = malloc(sizeof(char) * 100);
 
-    socket = rawSocketConnection(ETHERNET);
-    printf("%s\n", packet->data);
+    int socket;
+    unsigned char* data;
+    packet_t* packet;
 
-    buffer = packetToBuffer(packet);
+    unsigned char* buffer;
+
+    // socket = rawSocketConnection(ETHERNET);
+
 
     while (1) {
-        send(socket, buffer, sizeof(packet), 0);
-        
-        // scanf("%s", command);
-        // if (strcmp(command, "cd") == 0) {
-        //     scanf("%s", path);
-        //     chdir(path);
+        scanf("%s", command);
+        commandParsed = parseCommand(command);
+        int numParts;
+        // printf("%s\n %s\n", commandParsed[0], commandParsed[1]);
+
+        // if (!(strcmp(command, "send"))) {
+        //     // while (1){
+        //         send(socket, packet, 67, 0);
+        //     // }
+        // } else if (!(strcmp(command, "backup"))) {
+        //     file = fopen("teste.txt", "r");
+        //     if (!file) {
+        //         printf("Erro ao abrir o arquivo.");
+        //         continue;
+        //     }
+        //     long fileSize = findFileSize(file);
+        //     printf("%ld\n", fileSize);
+        //     int numberOfMessages = findNumberOfMessages(fileSize);
+        //     printf("%d\n", numberOfMessages);
+        //     for (int i = 0; i < numberOfMessages; i++) {
+        //         buffer = readFile(file);
+        //         packet = makePacket(buffer, DATA_SIZE, 1, 1);
+        //         printf("%s\n", packet);
+        //         send(socket, packet, MESSAGE_SIZE, 0);
+        //     }
+        //     fclose(file);
+        // } else if (!(strcmp(command, "exit"))) {
+        //     break;
         // }
     }
 
