@@ -1,9 +1,6 @@
 #ifndef FILE_HELPER_H
 #define FILE_HELPER_H
 
-#include <stdio.h>
-#include <stdlib.h>
-
 unsigned char* readFile(FILE* file);
 
 int findFileSize(FILE* file);

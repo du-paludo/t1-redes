@@ -20,14 +20,15 @@ int findNumberOfMessages(long fileSize) {
 unsigned char* readFile(FILE* file) {
     unsigned char* buffer = malloc(sizeof(unsigned char) * DATA_SIZE);
     fread(buffer, sizeof(unsigned char), DATA_SIZE, file);
+    printf("%s", buffer);
     return buffer;
 }
 
 FILE* openFile() {
-    FILE* file = fopen("teste.txt", "w");
+    FILE* file = fopen("aaa.txt", "a");
     return file;
 }
 
 void saveFile(FILE* file, unsigned char* data) {
-    fprintf(file, data);
+    fprintf(file, "%s", data);
 }

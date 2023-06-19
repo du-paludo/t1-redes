@@ -30,8 +30,8 @@ packet_t* makePacket(unsigned char *data, int size, int sequence, int type) {
 
 unsigned char* packetToBuffer(packet_t *p){
     unsigned char startDelimiter = p->startDelimiter;
-    unsigned int size = p->size;
-    unsigned int sequence = p->sequence;
+    // unsigned int size = p->size;
+    // unsigned int sequence = p->sequence;
     unsigned int type = p->type;
     unsigned char* message = malloc(sizeof(unsigned char) * 63);
 
@@ -40,7 +40,6 @@ unsigned char* packetToBuffer(packet_t *p){
     }
 
     if (startDelimiter == '~') {
-        if (type == 1)
         printf("%s", message);
     }
 

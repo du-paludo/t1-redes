@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "ConexaoRawSocket.h"
-#include "rawSocketConnection.h"
+#include "fileHelper.h"
 #include "packet.h"
 
 #define ETHERNET "lo"
@@ -17,26 +17,35 @@ int main(int argc, char** argv) {
     int socket; 
     packet_t packet;
     int type;
+    unsigned char startDelimiter;
 
-    socket = rawSocketConnection(ETHERNET);
+    socket = ConexaoRawSocket(ETHERNET);
 
     while (1) {
         if (recv(socket, &packet, 67, 0)) {
             data = packetToBuffer(&packet);
+            startDelimiter = packet.startDelimiter;
             type = packet.type;
-            printf("%d\n", type);
+            if (startDelimiter == '~') {
+                printf("%d\n", type);
+            }
+
             switch (type) {
                 case 0:
-                    file = openFile(data);
+                    file = openFile();
                     break;
                 case 8:
-                    fprintf(file, data);
+                    printf("%s \n", data);
+                    saveFile(file, data);
                     break;
+                case 9:
+                    if (file) {
+                        fclose(file);
+                        file = NULL;
+                    }
             }
         }
     }
+
     return 0;
 }
-// https://github.com/ludersGabriel/t1-redes
-// https://github.com/tikaradate/redes-1
-// https://github.com/JoaoPicolo/UFPR-Redes1

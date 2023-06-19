@@ -1,12 +1,3 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <net/ethernet.h>
-#include <linux/if_packet.h>
-#include <linux/if.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 #include "ConexaoRawSocket.h"
 
 int ConexaoRawSocket(char *device) {
@@ -27,7 +18,7 @@ int ConexaoRawSocket(char *device) {
     }
 
     memset(&ir, 0, sizeof(struct ifreq));  	/*dispositivo eth0*/
-    memcpy(ir.ifr_name, device, sizeof(device));
+    memcpy(ir.ifr_name, device, sizeof(unsigned char) * (strlen(device) + 1));
     if (ioctl(soquete, SIOCGIFINDEX, &ir) == -1) {
         printf("Erro no ioctl\n");
         exit(-1);

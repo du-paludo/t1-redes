@@ -1,5 +1,5 @@
 FLAGS = -Wall -std=c99
-OBJS = ConexaoRawSocket.o packet.o rawSocketConnection.o fileHelper.o
+OBJS = ConexaoRawSocket.o packet.o fileHelper.o backup.o
 
 # .PHONY: all debug clean purge
 
@@ -31,6 +31,9 @@ server.o: server.c
 
 fileHelper.o: fileHelper.c
 	gcc -c fileHelper.c $(FLAGS)
+
+backup.o: backup.c
+	gcc -c backup.c $(FLAGS)
 
 clean:
 	@rm -f *~ *.bak *.tmp
