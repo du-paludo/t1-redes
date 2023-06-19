@@ -25,7 +25,7 @@ unsigned char* readFile(FILE* file) {
 }
 
 FILE* openFile() {
-    FILE* file = fopen("aaa.txt", "a");
+    FILE* file = fopen("killbill.txt", "a");
     return file;
 }
 
