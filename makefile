@@ -1,5 +1,5 @@
 FLAGS = -Wall -std=c99
-OBJS = ConexaoRawSocket.o packet.o fileHelper.o backup.o
+OBJS = rawSocketConnection.o packet.o fileHelper.o backup.o
 
 # .PHONY: all debug clean purge
 
@@ -17,8 +17,8 @@ client: client.o $(OBJS)
 server: server.o $(OBJS)
 	gcc -o server server.o $(OBJS) $(FLAGS)
 
-ConexaoRawSocket.o: ConexaoRawSocket.c
-	gcc -c ConexaoRawSocket.c $(FLAGS)
+rawSocketConnection.o: rawSocketConnection.c
+	gcc -c rawSocketConnection.c $(FLAGS)
 
 packet.o: packet.c
 	gcc -c packet.c $(FLAGS)

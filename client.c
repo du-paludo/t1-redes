@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "ConexaoRawSocket.h"
+#include "rawSocketConnection.h"
 #include "packet.h"
 #include "fileHelper.h"
 #include "backup.h"
@@ -56,7 +56,7 @@ void changeDirectory(char* path) {
 
 int main(int argc, char** argv) {
     int socket;
-    socket = ConexaoRawSocket(ETHERNET);
+    socket = rawSocketConnection(ETHERNET);
 
     char* input = malloc(sizeof(char) * 100);
     char** inputParsed;

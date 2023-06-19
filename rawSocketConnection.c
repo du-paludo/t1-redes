@@ -1,6 +1,6 @@
-#include "ConexaoRawSocket.h"
+#include "rawSocketConnection.h"
 
-int ConexaoRawSocket(char *device) {
+int rawSocketConnection(char *device) {
     int soquete;
     struct ifreq ir;
     struct sockaddr_ll endereco;

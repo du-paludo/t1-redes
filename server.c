@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "ConexaoRawSocket.h"
+#include "rawSocketConnection.h"
 #include "fileHelper.h"
 #include "packet.h"
 
@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     int type;
     unsigned char startDelimiter;
 
-    socket = ConexaoRawSocket(ETHERNET);
+    socket = rawSocketConnection(ETHERNET);
 
     while (1) {
         if (recv(socket, &packet, 67, 0)) {

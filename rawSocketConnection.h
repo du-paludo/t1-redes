@@ -1,5 +1,5 @@
-#ifndef CONEXAORAWSOCKET_H
-#define CONEXAORAWSOCKET_H
+#ifndef RAW_SOCKET_CONNECTION_H
+#define RAW_SOCKET_CONNECTION_H
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -12,6 +12,6 @@
 #include <stdio.h>
 #include <netinet/in.h>
 
-int ConexaoRawSocket(char *device);
+int rawSocketConnection(char *device);
 
 #endif

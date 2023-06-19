@@ -58,6 +58,9 @@
     "packet.h": "c",
     "unistd.h": "c",
     "rawsocketconnection.h": "c",
-    "stdlib.h": "c"
-  }
+    "stdlib.h": "c",
+    "in.h": "c",
+    "stdio.h": "c",
+    "if.h": "c"
+}
 }
