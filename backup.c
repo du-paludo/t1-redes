@@ -1,13 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include "ConexaoRawSocket.h"
 #include "fileHelper.h"
 #include "packet.h"
 #include "backup.h"
 
 int makeBackup(int socket, char* fileName) {
     FILE* file = fopen(fileName, "r");
-    char* data;
+    unsigned char* data;
 
     if (!file) {
         printf("Erro ao abrir o arquivo.");
