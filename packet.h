@@ -30,7 +30,7 @@ struct packet {
     unsigned char sequence:6;
     unsigned int type:4;
     unsigned char data[DATA_SIZE];
-    unsigned char crc:8;
+    unsigned char vrc:8;
 };
 typedef struct packet packet_t;
 
@@ -41,5 +41,9 @@ unsigned char* packetToBuffer(packet_t *p);
 void sendAck(int socket, packet_t* packet);
 
 void sendNack(int socket, packet_t* packet);
+
+void waitResponse(int socket, packet_t* packet, packet_t* response, int sequence);
+
+unsigned char calculateVRC(packet_t* packet);
 
 #endif

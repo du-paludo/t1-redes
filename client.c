@@ -43,22 +43,6 @@ char** parseInput(char* input) {
     return inputParsed;
 }
 
-// void changeDirectory(char* path) {
-//     if (chdir(path) != 0) {
-//         printf("Directory doesn't exist\n");
-//     }
-//     char cwd[PATH_MAX];
-//     if (getcwd(cwd, sizeof(cwd)) != NULL) {
-//         printf("Current working directory: %s\n", cwd);
-//     } else {
-//         perror("getcwd() error");
-//     }
-// }
-
-void setDir(char* path) {
-
-}
-
 int main(int argc, char** argv) {
     int socket;
     socket = rawSocketConnection(ETHERNET);
@@ -71,6 +55,7 @@ int main(int argc, char** argv) {
     int hasReceivedAck = 0;
 
     packet_t* packet = malloc(sizeof(packet_t));
+    packet_t* response = malloc(sizeof(packet_t));
     // char* path = malloc(sizeof(char) * 100);
 
     while (1) {
@@ -91,34 +76,36 @@ int main(int argc, char** argv) {
                 // Envia mensagem de início de grupo de arquivos
                 makePacket(packet, NULL, 0, (++sequence % MAX_SEQUENCE), 1);
                 send(socket, packet, MESSAGE_SIZE, 0);
+                waitResponse(socket, packet, response, sequence);
 
                 // Para cada arquivo, faz backup
                 char* fileName = globbuf.gl_pathv[i];
                 printf("%s\n", fileName);
                 makeBackup(socket, fileName, &sequence);
             }
+        } else if (!(strcmp(command, "restore"))) {
+            char* pattern = inputParsed[1];
+            glob_t globbuf;
+            glob(pattern, 0, NULL, &globbuf);
+            for (int i = 0; i < globbuf.gl_pathc; i++) {
+                // char* fileName = globbuf.gl_pathv[i];
+                // restoreBackup();
+            }
         }
         else if (!(strcmp(command, "setdir"))) {
             char* path = inputParsed[1];
             makePacket(packet, (unsigned char*) path, strlen(path), (++sequence % MAX_SEQUENCE), 4);
             send(socket, packet, MESSAGE_SIZE, 0);
+            waitResponse(socket, response, packet, sequence);
         }
         else if (!(strcmp(command, "exit"))) {
             break;
-        }
-        while (!hasReceivedAck) {
-            recv(socket, packet, MESSAGE_SIZE, 0);
-            if ((packet->startDelimiter == '~' )) {
-                if (packet->type == 14) {
-                    hasReceivedAck = 1;
-                    printf("ACK received\n");
-                } else if (packet->type == 15) {
-                    send(socket, packet, MESSAGE_SIZE, 0);
-                    printf("NACK received\n");
-                }
-            }
+        } else {
+            printf("Comando inválido\n");
         }
     }
 
+    free(packet);
+    free(response);
     return 0;
 }

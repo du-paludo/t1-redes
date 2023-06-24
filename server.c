@@ -21,8 +21,9 @@ int main(int argc, char** argv) {
 
     int socket; 
     packet_t* packet = malloc(sizeof(packet_t));
-    int type;
-    int size;
+    unsigned int type;
+    unsigned int size;
+    unsigned char vrc;
     int sequence = -1;
     unsigned char startDelimiter;
 
@@ -35,16 +36,20 @@ int main(int argc, char** argv) {
                 data = packetToBuffer(packet);
                 size = packet->size;
                 type = packet->type;
-                printf("%s %d %d %d\n", data, size, packet->sequence, type);
+                vrc = packet->vrc;
+                printf("VRC: %d\n", packet->vrc);
+                printf("Sequence: %d\n", packet->sequence);
+                printf("Type: %d\n", packet->type);
+                printf("Size: %d\n", packet->size);
 
                 // Condição loopback
-                if (packet->sequence == sequence) {
+                if (packet->sequence == sequence || packet->type == 14 || packet->type == 15) {
                     continue;
                 }
                 if (packet->sequence != sequence + 1) {
                     sendNack(socket, packet);
+                    continue;
                 }
-                printf("OK\n");
                 sequence = packet->sequence;
 
                 switch (type) {
@@ -52,7 +57,6 @@ int main(int argc, char** argv) {
                         file = openFile(data);
                         break;
                     case 1:
-
                         break;
                     case 4:
                         changeDirectory((char*) data);
