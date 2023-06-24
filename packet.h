@@ -37,4 +37,6 @@ packet_t* makePacket(unsigned char *data, int size, int sequence, int type);
 
 unsigned char* packetToBuffer(packet_t *p);
 
+void sendAck(int socket);
+
 #endif

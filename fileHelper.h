@@ -9,6 +9,6 @@ int findNumberOfMessages(long fileSize);
 
 FILE* openFile();
 
-void saveFile(FILE* file, unsigned char* data);
+void saveFile(FILE* file, unsigned char* data, int size);
 
 #endif

@@ -29,6 +29,6 @@ FILE* openFile() {
     return file;
 }
 
-void saveFile(FILE* file, unsigned char* data) {
-    fprintf(file, "%s", data);
+void saveFile(FILE* file, unsigned char* data, int size) {
+    fwrite(data, sizeof(unsigned char), size, file);
 }
