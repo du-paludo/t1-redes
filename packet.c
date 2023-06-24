@@ -17,17 +17,16 @@
 //     return p;
 // }
 
-packet_t* makePacket(unsigned char *data, int size, int sequence, int type) {
-    packet_t* p = malloc(sizeof(packet_t));
-
+void makePacket(packet_t* p, unsigned char *data, int size, int sequence, int type) {
     p->startDelimiter = START_DELIMITER;
     p->size = size;
     p->sequence = sequence;
     p->type = type;
-    memcpy(p->data, data, size);
+    for (int i = 0; i < size; i++) {
+        p->data[i] = data[i];
+    }
+    // memcpy(p->data, data, size);
     p->crc = 0x00;
-
-    return p;
 }
 
 unsigned char* packetToBuffer(packet_t *p){
@@ -41,14 +40,19 @@ unsigned char* packetToBuffer(packet_t *p){
         message[i] = p->data[i];
     }
 
-    if (startDelimiter == '~') {
-        printf("%s", message);
-    }
+    // if (startDelimiter == '~') {
+    //     printf("%s", message);
+    // }
 
     return message;
 }
 
-void sendAck(int socket) {
-    packet_t* ack = makePacket(NULL, 0, 0, 14);
-    send(socket, ack, MESSAGE_SIZE, 0);
+void sendAck(int socket, packet_t* packet) {
+    makePacket(packet, NULL, 0, 0, 14);
+    send(socket, packet, MESSAGE_SIZE, 0);
+}
+
+void sendNack(int socket, packet_t* packet) {
+    makePacket(packet, NULL, 0, 0, 15);
+    send(socket, packet, MESSAGE_SIZE, 0);
 }

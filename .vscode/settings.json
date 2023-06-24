@@ -61,6 +61,7 @@
     "stdlib.h": "c",
     "in.h": "c",
     "stdio.h": "c",
-    "if.h": "c"
-}
+    "if.h": "c",
+    "backup.h": "c"
+  }
 }

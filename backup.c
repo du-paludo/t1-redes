@@ -7,7 +7,7 @@
 #include "packet.h"
 #include "backup.h"
 
-int makeBackup(int socket, char* fileName) {
+int makeBackup(int socket, char* fileName, int* sequence) {
     FILE* file = fopen(fileName, "r");
     unsigned char* data;
 
@@ -15,24 +15,31 @@ int makeBackup(int socket, char* fileName) {
         printf("Erro ao abrir o arquivo.");
         return -1;
     }
-    packet_t* packet = makePacket((unsigned char*) fileName, strlen(fileName) + 1, 0, 0);
+    packet_t* packet = malloc(sizeof(packet_t));
+    makePacket(packet, (unsigned char*) fileName, strlen(fileName) + 1, (++(*sequence) % MAX_SEQUENCE), 0);
     send(socket, packet, MESSAGE_SIZE, 0);  
 
     long fileSize = findFileSize(file);
+    // printf("%ld\n", fileSize);
     int numberOfMessages = findNumberOfMessages(fileSize);
+    // printf("%d\n", numberOfMessages);
     for (int i = 0; i < numberOfMessages-1; i++) {
         data = readFile(file);
-        packet = makePacket(data, DATA_SIZE, 1, 8);
+        // printf("\n");
+        makePacket(packet, data, DATA_SIZE, (++(*sequence) % MAX_SEQUENCE), 8);
         send(socket, packet, MESSAGE_SIZE, 0);
     }
     data = readFile(file);
-    packet = makePacket(data, (fileSize % DATA_SIZE), 1, 8);
+    // printf("%s\n", data);
+    // printf("%ld\n", fileSize % DATA_SIZE);
+    makePacket(packet, data, (fileSize % DATA_SIZE), (++(*sequence) % MAX_SEQUENCE), 8);
     send(socket, packet, MESSAGE_SIZE, 0);
 
-    packet = makePacket(NULL, 0, 1, 9);
+    makePacket(packet, NULL, 0, (++(*sequence) % MAX_SEQUENCE), 9);
     send(socket, packet, MESSAGE_SIZE, 0);
+
     fclose(file);
-
+    free(packet);
     return 0;
 }
 

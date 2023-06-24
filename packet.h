@@ -4,6 +4,7 @@
 #define START_DELIMITER '~'
 #define MESSAGE_SIZE 67
 #define DATA_SIZE 63
+#define MAX_SEQUENCE 64
 
 // types:
 // 0000 - backup 1 arq
@@ -33,10 +34,12 @@ struct packet {
 };
 typedef struct packet packet_t;
 
-packet_t* makePacket(unsigned char *data, int size, int sequence, int type);
+void makePacket(packet_t* p, unsigned char *data, int size, int sequence, int type);
 
 unsigned char* packetToBuffer(packet_t *p);
 
-void sendAck(int socket);
+void sendAck(int socket, packet_t* packet);
+
+void sendNack(int socket, packet_t* packet);
 
 #endif

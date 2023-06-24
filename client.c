@@ -9,6 +9,7 @@
 #include "backup.h"
 
 #define ETHERNET "lo"
+#define TAM_INPUT 100
 
 char* strdup(const char *c)
 {
@@ -62,17 +63,18 @@ int main(int argc, char** argv) {
     int socket;
     socket = rawSocketConnection(ETHERNET);
 
-    char* input = malloc(sizeof(char) * 100);
+    char* input = malloc(sizeof(char) * TAM_INPUT);
     char** inputParsed;
     char* command;
 
+    int sequence = -1;
     int hasReceivedAck = 0;
 
     packet_t* packet = malloc(sizeof(packet_t));
     // char* path = malloc(sizeof(char) * 100);
 
     while (1) {
-        fgets(input, 100, stdin);
+        fgets(input, TAM_INPUT, stdin);
         input[strcspn(input, "\n")] = 0;
         inputParsed = parseInput(input);
         command = inputParsed[0];
@@ -87,19 +89,18 @@ int main(int argc, char** argv) {
             glob(pattern, 0, NULL, &globbuf);
             for (int i = 0; i < globbuf.gl_pathc; i++) {
                 // Envia mensagem de início de grupo de arquivos
-                packet = makePacket(NULL, 0, 0, 1);
+                makePacket(packet, NULL, 0, (++sequence % MAX_SEQUENCE), 1);
                 send(socket, packet, MESSAGE_SIZE, 0);
 
                 // Para cada arquivo, faz backup
                 char* fileName = globbuf.gl_pathv[i];
                 printf("%s\n", fileName);
-                makeBackup(socket, fileName);
+                makeBackup(socket, fileName, &sequence);
             }
-            // makeBackup(socket, fileName);
         }
         else if (!(strcmp(command, "setdir"))) {
             char* path = inputParsed[1];
-            packet = makePacket((unsigned char*) path, strlen(path), 0, 4);
+            makePacket(packet, (unsigned char*) path, strlen(path), (++sequence % MAX_SEQUENCE), 4);
             send(socket, packet, MESSAGE_SIZE, 0);
         }
         else if (!(strcmp(command, "exit"))) {
@@ -107,9 +108,14 @@ int main(int argc, char** argv) {
         }
         while (!hasReceivedAck) {
             recv(socket, packet, MESSAGE_SIZE, 0);
-            if ((packet->startDelimiter == '~' ) && (packet->type == 14)) {
-                hasReceivedAck = 1;
-                printf("ACK received\n");
+            if ((packet->startDelimiter == '~' )) {
+                if (packet->type == 14) {
+                    hasReceivedAck = 1;
+                    printf("ACK received\n");
+                } else if (packet->type == 15) {
+                    send(socket, packet, MESSAGE_SIZE, 0);
+                    printf("NACK received\n");
+                }
             }
         }
     }
