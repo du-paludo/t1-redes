@@ -63,6 +63,7 @@
     "stdio.h": "c",
     "if.h": "c",
     "backup.h": "c",
-    "filehelper.h": "c"
+    "filehelper.h": "c",
+    "glob.h": "c"
   }
 }

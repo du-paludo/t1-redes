@@ -67,14 +67,18 @@ int main(int argc, char** argv) {
                         sendAck(socket, packet);
                         break;
                     case 1:
+                        sendAck(socket, packet);
                         break;
                     case 4:
                         changeDirectory((char*) data);
                         sendAck(socket, packet);
                         break;
                     case 5:
-                        // printf("OK\n");
-                        serverMD5 = getMD5Hash(data);
+                        printf("OK\n");
+                        serverMD5 = getMD5Hash((char*) data);
+                        for (int i = 0; i < MD5_DIGEST_LENGTH; i++) {
+                            printf("%02x", serverMD5[i]);
+                        }
                         // printf("OK\n");
                         makePacket(packet, serverMD5, MD5_DIGEST_LENGTH, 0, 7);
                         send(socket, packet, MESSAGE_SIZE, 0);
@@ -91,6 +95,9 @@ int main(int argc, char** argv) {
                             fclose(file);
                             file = NULL;
                         }
+                        sendAck(socket, packet);
+                        break;
+                    case 10:
                         sendAck(socket, packet);
                         break;
                 }

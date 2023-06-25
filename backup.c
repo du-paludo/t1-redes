@@ -6,6 +6,7 @@
 #include "fileHelper.h"
 #include "packet.h"
 #include "backup.h"
+#include <glob.h>
 #include <openssl/md5.h>
 
 int makeBackup(int socket, char* fileName, int* sequence) {
@@ -49,6 +50,24 @@ int makeBackup(int socket, char* fileName, int* sequence) {
     free(packet);
     free(response);
     return 0;
+}
+
+void makeMultipleBackup(int socket, packet_t* packet, packet_t* response, glob_t* globbuf, int* sequence) {
+    for (int i = 0; i < globbuf->gl_pathc; i++) {
+        // Envia mensagem de início de grupo de arquivos
+        makePacket(packet, NULL, 0, (++(*sequence) % MAX_SEQUENCE), 1);
+        send(socket, packet, MESSAGE_SIZE, 0);
+        waitResponseTimeout(socket, packet, response, ((*sequence) % MAX_SEQUENCE));
+
+        // Para cada arquivo, faz backup
+        char* fileName = globbuf->gl_pathv[i];
+        printf("%s\n", fileName);
+        makeBackup(socket, fileName, sequence);
+
+        makePacket(packet, NULL, 0, (++(*sequence) % MAX_SEQUENCE), 10);
+        send(socket, packet, MESSAGE_SIZE, 0);
+        waitResponseTimeout(socket, packet, response, ((*sequence) % MAX_SEQUENCE));
+    }
 }
 
 void restoreBackup(int socket, char* fileName, int* sequence) {
@@ -98,5 +117,6 @@ unsigned char* getMD5Hash(char* fileName) {
 
     MD5_Final(MD5Hash, md5CTX);
 
+    fclose(file);
     return MD5Hash;
 }

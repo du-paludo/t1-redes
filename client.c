@@ -70,16 +70,11 @@ int main(int argc, char** argv) {
             char* pattern = inputParsed[1];
             glob_t globbuf;
             glob(pattern, 0, NULL, &globbuf);
-            for (int i = 0; i < globbuf.gl_pathc; i++) {
-                // Envia mensagem de início de grupo de arquivos
-                makePacket(packet, NULL, 0, (++sequence % MAX_SEQUENCE), 1);
-                send(socket, packet, MESSAGE_SIZE, 0);
-                waitResponseTimeout(socket, response, packet, sequence);
-
-                // Para cada arquivo, faz backup
-                char* fileName = globbuf.gl_pathv[i];
-                printf("%s\n", fileName);
+            if (globbuf.gl_pathc == 1) {
+                char* fileName = globbuf.gl_pathv[0];
                 makeBackup(socket, fileName, &sequence);
+            } else {
+                makeMultipleBackup(socket, packet, response, &globbuf, &sequence);
             }
         } else if (!(strcmp(command, "restore"))) {
             // char* pattern = inputParsed[1];
@@ -94,7 +89,11 @@ int main(int argc, char** argv) {
             char* fileName = inputParsed[1];
             makePacket(packet, (unsigned char*) fileName, strlen(fileName), (++sequence % MAX_SEQUENCE), 5);
             sendMessage(socket, packet, response);
+            printf("MD5 do arquivo no servidor: ");
             unsigned char* serverMD5 = response->data;
+            for (int i = 0; i < 16; i++) {
+                printf("%02x", serverMD5[i]);
+            }
             verifyBackup(fileName, serverMD5);
         }
         else if (!(strcmp(command, "setdir"))) {
