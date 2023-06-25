@@ -51,7 +51,6 @@ int main(int argc, char** argv) {
     char* command;
 
     int sequence = -1;
-    int hasReceivedAck = 0;
 
     packet_t* packet = malloc(sizeof(packet_t));
     packet_t* response = malloc(sizeof(packet_t));
@@ -83,13 +82,20 @@ int main(int argc, char** argv) {
                 makeBackup(socket, fileName, &sequence);
             }
         } else if (!(strcmp(command, "restore"))) {
-            char* pattern = inputParsed[1];
-            glob_t globbuf;
-            glob(pattern, 0, NULL, &globbuf);
-            for (int i = 0; i < globbuf.gl_pathc; i++) {
-                // char* fileName = globbuf.gl_pathv[i];
-                // restoreBackup();
-            }
+            // char* pattern = inputParsed[1];
+            // glob_t globbuf;
+            // glob(pattern, 0, NULL, &globbuf);
+            // for (int i = 0; i < globbuf.gl_pathc; i++) {
+            //     // char* fileName = globbuf.gl_pathv[i];
+            //     // restoreBackup();
+            // }
+        }
+        else if (!(strcmp(command, "verify"))) {
+            char* fileName = inputParsed[1];
+            makePacket(packet, (unsigned char*) fileName, strlen(fileName), (++sequence % MAX_SEQUENCE), 5);
+            sendMessage(socket, packet, response);
+            unsigned char* serverMD5 = response->data;
+            verifyBackup(fileName, serverMD5);
         }
         else if (!(strcmp(command, "setdir"))) {
             char* path = inputParsed[1];

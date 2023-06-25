@@ -7,4 +7,8 @@ int makeBackup(int socket, char* fileName, int* sequence);
 
 void changeDirectory(char* path);
 
+unsigned char* getMD5Hash(char* fileName);
+
+int verifyBackup(char* fileName, unsigned char* serverMD5);
+
 #endif

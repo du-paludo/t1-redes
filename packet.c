@@ -87,6 +87,10 @@ int waitResponseTimeout(int socket, packet_t* packet, packet_t* response, int se
         while (time(NULL) - start < 1) {
             recv(socket, response, MESSAGE_SIZE, 0);
             if (response->startDelimiter == '~') {
+                if (response->type == 7) {
+                    printf("MD5 received\n");
+                    return 1;
+                }
                 if (response->type == 14 && response->sequence == sequence) {
                     printf("ACK received\n");
                     return 1;
@@ -119,4 +123,9 @@ void printPacket(packet_t* p) {
     printf("Sequence: %d\n", p->sequence);
     printf("Type: %d\n", p->type);
     printf("Size: %d\n", p->size);
+}
+
+void sendMessage(int socket, packet_t* packet, packet_t* response) {
+    send(socket, packet, MESSAGE_SIZE, 0);
+    waitResponse(socket, response, packet, packet->sequence);
 }

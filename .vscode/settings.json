@@ -62,6 +62,7 @@
     "in.h": "c",
     "stdio.h": "c",
     "if.h": "c",
-    "backup.h": "c"
+    "backup.h": "c",
+    "filehelper.h": "c"
   }
 }

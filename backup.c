@@ -6,6 +6,7 @@
 #include "fileHelper.h"
 #include "packet.h"
 #include "backup.h"
+#include <openssl/md5.h>
 
 int makeBackup(int socket, char* fileName, int* sequence) {
     FILE* file = fopen(fileName, "r");
@@ -64,4 +65,38 @@ void changeDirectory(char* path) {
     } else {
         perror("getcwd() error");
     }
+}
+
+int verifyBackup(char* fileName, unsigned char* serverMD5) {
+    unsigned char* clientMD5 = malloc(sizeof(unsigned char) * MD5_DIGEST_LENGTH);
+    clientMD5 = getMD5Hash(fileName);
+    printf("MD5 do arquivo no servidor: %s\n", clientMD5);
+    printf("MD5 do arquivo no cliente: %s\n", serverMD5);
+
+    if (strcmp((char*) clientMD5, (char*) serverMD5) == 0) {
+        printf("Arquivo no servidor está igual ao arquivo no cliente.\n");
+        return 1;
+    } else {
+        printf("Arquivo no servidor está diferente do arquivo no cliente.\n");
+        return 0;
+    }
+}
+
+unsigned char* getMD5Hash(char* fileName) {
+    FILE* file = fopen(fileName, "r");
+    
+    unsigned char* MD5Hash = malloc(sizeof(unsigned char) * MD5_DIGEST_LENGTH);
+    unsigned char* data = malloc(sizeof(unsigned char) * BUFFER_SIZE);
+
+    MD5_CTX* md5CTX;
+    MD5_Init(md5CTX);
+    size_t bytes_read;
+
+    while ((bytes_read = fread(data, 1, BUFFER_SIZE, file)) != 0) {
+        MD5_Update(md5CTX, data, bytes_read);
+    }
+
+    MD5_Final(MD5Hash, md5CTX);
+
+    return MD5Hash;
 }

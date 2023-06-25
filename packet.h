@@ -5,6 +5,7 @@
 #define MESSAGE_SIZE 68
 #define DATA_SIZE 63
 #define MAX_SEQUENCE 64
+#define BUFFER_SIZE 1024
 
 // types:
 // 0000 - backup 1 arq
@@ -49,5 +50,7 @@ int waitResponseTimeout(int socket, packet_t* packet, packet_t* response, int se
 unsigned char calculateVRC(packet_t* packet);
 
 void printPacket(packet_t* p);
+
+void sendMessage(int socket, packet_t* packet, packet_t* response);
 
 #endif

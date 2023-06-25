@@ -6,6 +6,7 @@
 #include "fileHelper.h"
 #include "packet.h"
 #include "backup.h"
+#include <openssl/md5.h>
 
 #define ETHERNET "lo"
 
@@ -21,11 +22,14 @@ int main(int argc, char** argv) {
 
     int socket; 
     packet_t* packet = malloc(sizeof(packet_t));
+    packet_t* response = malloc(sizeof(packet_t));
     unsigned int type;
     unsigned int size;
     unsigned char vrc;
     int sequence = -1;
     unsigned char startDelimiter;
+
+    unsigned char* serverMD5;
 
     socket = rawSocketConnection(ETHERNET);
 
@@ -60,26 +64,36 @@ int main(int argc, char** argv) {
                 switch (type) {
                     case 0:
                         file = openFile(data);
+                        sendAck(socket, packet);
                         break;
                     case 1:
                         break;
                     case 4:
                         changeDirectory((char*) data);
+                        sendAck(socket, packet);
+                        break;
+                    case 5:
+                        // printf("OK\n");
+                        serverMD5 = getMD5Hash(data);
+                        // printf("OK\n");
+                        makePacket(packet, serverMD5, MD5_DIGEST_LENGTH, 0, 7);
+                        send(socket, packet, MESSAGE_SIZE, 0);
                         break;
                     case 8:
                         for (int i = 0; i < size; i++) {
                             // printf("%c", data[i]);
                         }
                         saveFile(file, data, size);
+                        sendAck(socket, packet);
                         break;
                     case 9:
                         if (file) {
                             fclose(file);
                             file = NULL;
                         }
+                        sendAck(socket, packet);
                         break;
                 }
-                sendAck(socket, packet);
             }
         }
     }
