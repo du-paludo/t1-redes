@@ -11,8 +11,7 @@
 #define ETHERNET "lo"
 #define TAM_INPUT 100
 
-char* strdup(const char *c)
-{
+char* strdup(const char *c) {
     char *dup = malloc(strlen(c) + 1);
 
     if (dup != NULL)
@@ -76,7 +75,7 @@ int main(int argc, char** argv) {
                 // Envia mensagem de início de grupo de arquivos
                 makePacket(packet, NULL, 0, (++sequence % MAX_SEQUENCE), 1);
                 send(socket, packet, MESSAGE_SIZE, 0);
-                waitResponse(socket, packet, response, sequence);
+                waitResponseTimeout(socket, response, packet, sequence);
 
                 // Para cada arquivo, faz backup
                 char* fileName = globbuf.gl_pathv[i];
@@ -96,7 +95,7 @@ int main(int argc, char** argv) {
             char* path = inputParsed[1];
             makePacket(packet, (unsigned char*) path, strlen(path), (++sequence % MAX_SEQUENCE), 4);
             send(socket, packet, MESSAGE_SIZE, 0);
-            waitResponse(socket, response, packet, sequence);
+            waitResponseTimeout(socket, response, packet, sequence);
         }
         else if (!(strcmp(command, "exit"))) {
             break;

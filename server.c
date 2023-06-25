@@ -16,7 +16,7 @@
 int main(int argc, char** argv) {
     // char* command = malloc(sizeof(char) * 100);
     // char* path = malloc(sizeof(char) * 100);
-    unsigned char* data = malloc(8*63);
+    unsigned char* data = malloc(sizeof(unsigned char)*63);
     FILE* file;
 
     int socket; 
@@ -36,20 +36,25 @@ int main(int argc, char** argv) {
                 data = packetToBuffer(packet);
                 size = packet->size;
                 type = packet->type;
-                vrc = packet->vrc;
-                printf("VRC: %d\n", packet->vrc);
-                printf("Sequence: %d\n", packet->sequence);
-                printf("Type: %d\n", packet->type);
-                printf("Size: %d\n", packet->size);
+                vrc = calculateVRC(packet);
 
                 // Condição loopback
                 if (packet->sequence == sequence || packet->type == 14 || packet->type == 15) {
                     continue;
                 }
-                if (packet->sequence != sequence + 1) {
+
+                if ((packet->sequence == sequence-1) || (packet->sequence == 63 && sequence == 0)) {
+                    printf("%d %d\n", packet->sequence, sequence);
+                    sendAck(socket, packet);
+                    continue;
+                }
+                if ((packet->sequence > (sequence + 1) % 64) || (packet->vrc != vrc)) {
                     sendNack(socket, packet);
                     continue;
                 }
+
+                printPacket(packet);
+
                 sequence = packet->sequence;
 
                 switch (type) {
@@ -63,7 +68,7 @@ int main(int argc, char** argv) {
                         break;
                     case 8:
                         for (int i = 0; i < size; i++) {
-                            printf("%c", data[i]);
+                            // printf("%c", data[i]);
                         }
                         saveFile(file, data, size);
                         break;

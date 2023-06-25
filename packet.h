@@ -2,7 +2,7 @@
 #define PACKET_H
 
 #define START_DELIMITER '~'
-#define MESSAGE_SIZE 67
+#define MESSAGE_SIZE 68
 #define DATA_SIZE 63
 #define MAX_SEQUENCE 64
 
@@ -26,8 +26,8 @@
 
 struct packet {
     unsigned char startDelimiter:8;  // 011111110
-    unsigned char size:6;
-    unsigned char sequence:6;
+    unsigned int size:6;
+    unsigned int sequence:6;
     unsigned int type:4;
     unsigned char data[DATA_SIZE];
     unsigned char vrc:8;
@@ -44,6 +44,10 @@ void sendNack(int socket, packet_t* packet);
 
 void waitResponse(int socket, packet_t* packet, packet_t* response, int sequence);
 
+int waitResponseTimeout(int socket, packet_t* packet, packet_t* response, int sequence);
+
 unsigned char calculateVRC(packet_t* packet);
+
+void printPacket(packet_t* p);
 
 #endif

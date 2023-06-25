@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "packet.h"
+#include "time.h"
 #include "rawSocketConnection.h"
 
 // packet_t* makePacket(unsigned char *data, int size, int sequence, int type) {
@@ -28,13 +29,15 @@ void makePacket(packet_t* p, unsigned char *data, int size, int sequence, int ty
     memcpy(p->data, data, size);
     p->vrc = calculateVRC(p);
 
-    printf("VRC: %d\n", p->vrc);
-    printf("Sequence: %d\n", p->sequence);
-    printf("Type: %d\n", p->type);
-    printf("Size: %d\n", p->size);
+    if (type != 14 && type != 15) {
+        printf("VRC: %d\n", p->vrc);
+        printf("Sequence: %d\n", p->sequence);
+        printf("Type: %d\n", p->type);
+        printf("Size: %d\n", p->size);
+    }
 }
 
-unsigned char* packetToBuffer(packet_t *p){
+unsigned char* packetToBuffer(packet_t *p) {
     unsigned int size = p->size;
     unsigned char* message = malloc(sizeof(unsigned char) * size);
 
@@ -50,13 +53,13 @@ unsigned char* packetToBuffer(packet_t *p){
 
 void sendAck(int socket, packet_t* packet) {
     printf("Sending ACK\n");
-    makePacket(packet, NULL, 0, 0, 14);
+    makePacket(packet, NULL, 0, packet->sequence, 14);
     send(socket, packet, MESSAGE_SIZE, 0);
 }
 
 void sendNack(int socket, packet_t* packet) {
     printf("Sending NACK\n");
-    makePacket(packet, NULL, 0, 0, 15);
+    makePacket(packet, NULL, 0, packet->sequence, 15);
     send(socket, packet, MESSAGE_SIZE, 0);
 }
 
@@ -64,16 +67,43 @@ void waitResponse(int socket, packet_t* packet, packet_t* response, int sequence
     while (1) {
         recv(socket, response, MESSAGE_SIZE, 0);
         if (response->startDelimiter == '~') {
-            if (response->type == 14) {
+            if (response->type == 14 && response->sequence == sequence) {
                 printf("ACK received\n");
                 break;
             } else if (response->type == 15) {
                 printf("NACK received\n");
-                send(socket, packet, MESSAGE_SIZE, 0);
+                send(socket, packet, MESSAGE_SIZE, sequence);
                 continue;
             }
         }
     }
+}
+
+// wait response com timeout
+int waitResponseTimeout(int socket, packet_t* packet, packet_t* response, int sequence) {
+    time_t start;
+    while (1) {
+        start = time(NULL);
+        while (time(NULL) - start < 1) {
+            recv(socket, response, MESSAGE_SIZE, 0);
+            if (response->startDelimiter == '~') {
+                if (response->type == 14 && response->sequence == sequence) {
+                    printf("ACK received\n");
+                    return 1;
+                } else if (response->type == 15) {
+                    printf("NACK received\n");
+                    break;
+                }
+            }
+        }
+        if (time(NULL) - start >= 1) {
+            printf("Timeout\n");
+        }
+        send(socket, packet, MESSAGE_SIZE, 0);
+        printPacket(packet);
+        printf("%d\n", sequence);
+    }
+    return 0;
 }
 
 unsigned char calculateVRC(packet_t* packet) {
@@ -82,4 +112,11 @@ unsigned char calculateVRC(packet_t* packet) {
         vrc ^= packet->data[i];
     }
     return vrc;
+}
+
+void printPacket(packet_t* p) {
+    printf("VRC: %d\n", p->vrc);
+    printf("Sequence: %d\n", p->sequence);
+    printf("Type: %d\n", p->type);
+    printf("Size: %d\n", p->size);
 }

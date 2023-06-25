@@ -19,7 +19,7 @@ int makeBackup(int socket, char* fileName, int* sequence) {
     packet_t* response = malloc(sizeof(packet_t));
     makePacket(packet, (unsigned char*) fileName, strlen(fileName) + 1, (++(*sequence) % MAX_SEQUENCE), 0);
     send(socket, packet, MESSAGE_SIZE, 0);
-    waitResponse(socket, response, packet, *sequence);
+    waitResponseTimeout(socket, packet, response, ((*sequence) % MAX_SEQUENCE));
 
     long fileSize = findFileSize(file);
     // printf("%ld\n", fileSize);
@@ -30,7 +30,7 @@ int makeBackup(int socket, char* fileName, int* sequence) {
         // printf("\n");
         makePacket(packet, data, DATA_SIZE, (++(*sequence) % MAX_SEQUENCE), 8);
         send(socket, packet, MESSAGE_SIZE, 0);
-        waitResponse(socket, response, packet, *sequence);
+        waitResponseTimeout(socket, packet, response, ((*sequence) % MAX_SEQUENCE));
     }
     data = readFile(file);
     // printf("%s\n", data);
@@ -38,11 +38,11 @@ int makeBackup(int socket, char* fileName, int* sequence) {
 
     makePacket(packet, data, (fileSize % DATA_SIZE), (++(*sequence) % MAX_SEQUENCE), 8);
     send(socket, packet, MESSAGE_SIZE, 0);
-    waitResponse(socket, response, packet, *sequence);
+    waitResponseTimeout(socket, packet, response, ((*sequence) % MAX_SEQUENCE));
 
     makePacket(packet, NULL, 0, (++(*sequence) % MAX_SEQUENCE), 9);
     send(socket, packet, MESSAGE_SIZE, 0);
-    waitResponse(socket, response, packet, *sequence);
+    waitResponseTimeout(socket, packet, response, ((*sequence) % MAX_SEQUENCE));
 
     fclose(file);
     free(packet);
