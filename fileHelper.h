@@ -1,7 +1,7 @@
 #ifndef FILE_HELPER_H
 #define FILE_HELPER_H
 
-unsigned char* readFile(FILE* file);
+void readFile(FILE* file, unsigned char *buffer);
 
 int findFileSize(FILE* file);
 

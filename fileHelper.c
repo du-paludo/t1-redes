@@ -18,16 +18,14 @@ int findNumberOfMessages(long fileSize) {
     return numberOfMessages;
 }
 
-unsigned char* readFile(FILE* file) {
-    unsigned char* buffer = malloc(sizeof(unsigned char) * DATA_SIZE);
+void readFile(FILE* file, unsigned char *buffer) {
     fread(buffer, sizeof(unsigned char), DATA_SIZE, file);
     // printf("%s", buffer);
-    return buffer;
 }
 
 FILE* openFile(unsigned char* name) {
     printf("%s\n", name);
-    FILE* file = fopen((const char*) name, "w");
+    FILE* file = fopen((const char*) name, "wb");
     return file;
 }
 

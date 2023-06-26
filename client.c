@@ -7,39 +7,71 @@
 #include "packet.h"
 #include "fileHelper.h"
 #include "backup.h"
+#include <openssl/md5.h>
 
 #define ETHERNET "lo"
 #define TAM_INPUT 100
+#define MAX_SIZE 6
+#define ID 0
 
-char* strdup(const char *c) {
-    char *dup = malloc(strlen(c) + 1);
+int split (const char *str, char c, char ***arr) {
+    int count = 1;
+    int token_len = 1;
+    int i = 0;
+    char *p;
+    char *t;
 
-    if (dup != NULL)
-       strcpy(dup, c);
-
-    return dup;
-}
-
-char** parseInput(char* input) {
-    int capacity = 2;
-    char** inputParsed = (char**) malloc(capacity * sizeof(char*));
-    char* copy = strdup((const char*) input);
-    char* token;
-    token = strtok(copy, " ");
-    int numberOfParts = 0;
-
-    while (token != NULL) { 
-        if (numberOfParts >= capacity) {
-            capacity += 1;
-            inputParsed = (char**) realloc(inputParsed, capacity * sizeof(char*));
-        }
-        inputParsed[numberOfParts] = strdup(token);
-        numberOfParts++;
-        token = strtok(NULL, " ");
+    p = str;
+    while (*p != '\0')
+    {
+        if (*p == c)
+            count++;
+        p++;
     }
 
-    free(copy);
-    return inputParsed;
+    *arr = (char**) malloc(sizeof(char*) * count);
+    if (*arr == NULL)
+        exit(1);
+
+    p = str;
+    while (*p != '\0')
+    {
+        if (*p == c)
+        {
+            (*arr)[i] = (char*) malloc( sizeof(char) * token_len );
+            if ((*arr)[i] == NULL)
+                exit(1);
+
+            token_len = 0;
+            i++;
+        }
+        p++;
+        token_len++;
+    }
+    (*arr)[i] = (char*) malloc( sizeof(char) * token_len );
+    if ((*arr)[i] == NULL)
+        exit(1);
+
+    i = 0;
+    p = str;
+    t = ((*arr)[i]);
+    while (*p != '\0')
+    {
+        if (*p != c && *p != '\0')
+        {
+            *t = *p;
+            t++;
+        }
+        else
+        {
+            *t = '\0';
+            i++;
+            t = ((*arr)[i]);
+        }
+        p++;
+    }
+
+    return count;
 }
 
 int main(int argc, char** argv) {
@@ -47,19 +79,26 @@ int main(int argc, char** argv) {
     socket = rawSocketConnection(ETHERNET);
 
     char* input = malloc(sizeof(char) * TAM_INPUT);
-    char** inputParsed;
+    char** inputParsed = NULL;
+    int capacity;
     char* command;
 
     int sequence = -1;
+    
+    packet_t* sentMessage = malloc(69);
+    #ifdef LOOPBACK
+    sentMessage->origin = 0;
+    #endif
+    packet_t* receivedMessage = malloc(69);
 
-    packet_t* packet = malloc(sizeof(packet_t));
-    packet_t* response = malloc(sizeof(packet_t));
-    // char* path = malloc(sizeof(char) * 100);
+    unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
+
+    unsigned char* clientMD5 = malloc(sizeof(unsigned char)*MD5_DIGEST_LENGTH);
 
     while (1) {
         fgets(input, TAM_INPUT, stdin);
         input[strcspn(input, "\n")] = 0;
-        inputParsed = parseInput(input);
+        capacity = split(input, ' ', &inputParsed);
         command = inputParsed[0];
 
         if (!(strcmp(command, "cd"))) {
@@ -72,35 +111,26 @@ int main(int argc, char** argv) {
             glob(pattern, 0, NULL, &globbuf);
             if (globbuf.gl_pathc == 1) {
                 char* fileName = globbuf.gl_pathv[0];
-                makeBackup(socket, fileName, &sequence);
+                makeBackup(socket, sentMessage, receivedMessage, fileName, &sequence);
             } else {
-                makeMultipleBackup(socket, packet, response, &globbuf, &sequence);
+                makeMultipleBackup(socket, sentMessage, receivedMessage, &globbuf, &sequence);
             }
         } else if (!(strcmp(command, "restore"))) {
-            // char* pattern = inputParsed[1];
-            // glob_t globbuf;
-            // glob(pattern, 0, NULL, &globbuf);
-            // for (int i = 0; i < globbuf.gl_pathc; i++) {
-            //     // char* fileName = globbuf.gl_pathv[i];
-            //     // restoreBackup();
-            // }
+            char* fileName = inputParsed[1];
+            restoreBackup(socket, sentMessage, receivedMessage, fileName, &sequence);
         }
         else if (!(strcmp(command, "verify"))) {
             char* fileName = inputParsed[1];
-            makePacket(packet, (unsigned char*) fileName, strlen(fileName), (++sequence % MAX_SEQUENCE), 5);
-            sendMessage(socket, packet, response);
-            printf("MD5 do arquivo no servidor: ");
-            unsigned char* serverMD5 = response->data;
-            for (int i = 0; i < 16; i++) {
-                printf("%02x", serverMD5[i]);
-            }
-            verifyBackup(fileName, serverMD5);
+            makePacket(sentMessage, (unsigned char*) fileName, strlen(fileName), (++sequence % MAX_SEQUENCE), 5);
+            sendMessage(socket, sentMessage, receivedMessage);
+            packetToBuffer(receivedMessage, data);
+            unsigned char* serverMD5 = receivedMessage->data;
+            verifyBackup(fileName, clientMD5, serverMD5);
         }
         else if (!(strcmp(command, "setdir"))) {
             char* path = inputParsed[1];
-            makePacket(packet, (unsigned char*) path, strlen(path), (++sequence % MAX_SEQUENCE), 4);
-            send(socket, packet, MESSAGE_SIZE, 0);
-            waitResponseTimeout(socket, response, packet, sequence);
+            makePacket(sentMessage, (unsigned char*) path, strlen(path), (++sequence % MAX_SEQUENCE), 4);
+            sendMessage(socket, sentMessage, receivedMessage);
         }
         else if (!(strcmp(command, "exit"))) {
             break;
@@ -109,7 +139,18 @@ int main(int argc, char** argv) {
         }
     }
 
-    free(packet);
-    free(response);
+    free(sentMessage);
+    free(receivedMessage);
+    free(input);
+
+    for (int i = 0; i < capacity; i++) {
+        free(inputParsed[i]);
+        i++;
+    }
+    free(inputParsed);
+
+    free(clientMD5);
+    free(data);
+
     return 0;
 }

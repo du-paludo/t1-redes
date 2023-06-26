@@ -2,7 +2,13 @@
 #define PACKET_H
 
 #define START_DELIMITER '~'
+
+#ifdef LOOPBACK
+#define MESSAGE_SIZE 69
+#else
 #define MESSAGE_SIZE 68
+#endif
+
 #define DATA_SIZE 63
 #define MAX_SEQUENCE 64
 #define BUFFER_SIZE 1024
@@ -27,6 +33,9 @@
 
 struct packet {
     unsigned char startDelimiter:8;  // 011111110
+    #ifdef LOOPBACK
+    unsigned int origin:8;
+    #endif
     unsigned int size:6;
     unsigned int sequence:6;
     unsigned int type:4;
@@ -35,22 +44,22 @@ struct packet {
 };
 typedef struct packet packet_t;
 
-void makePacket(packet_t* p, unsigned char *data, int size, int sequence, int type);
+void makePacket(packet_t* packet, unsigned char *data, int size, int sequence, int type);
 
-unsigned char* packetToBuffer(packet_t *p);
+void sendAck(int socket, packet_t* sentMessage, packet_t* receivedMessage);
 
-void sendAck(int socket, packet_t* packet);
+void sendNack(int socket, packet_t* sentMessage, packet_t* receivedMessage);
 
-void sendNack(int socket, packet_t* packet);
+int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMessage);
 
-void waitResponse(int socket, packet_t* packet, packet_t* response, int sequence);
-
-int waitResponseTimeout(int socket, packet_t* packet, packet_t* response, int sequence);
+void packetToBuffer(packet_t *packet, unsigned char* data);
 
 unsigned char calculateVRC(packet_t* packet);
 
-void printPacket(packet_t* p);
+void printPacket(packet_t* packet);
 
-void sendMessage(int socket, packet_t* packet, packet_t* response);
+void sendMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage);
+
+int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id);
 
 #endif

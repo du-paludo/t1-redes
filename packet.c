@@ -6,105 +6,74 @@
 #include "time.h"
 #include "rawSocketConnection.h"
 
-// packet_t* makePacket(unsigned char *data, int size, int sequence, int type) {
-//     packet_t* p = malloc(sizeof(packet_t));
-//     p->startDelimiter = START_DELIMITER;
-//     p->size = size;
-//     p->sequence = sequence;
-//     p->type = type;
-//     memcpy(p->data, data, size);
-//     p->crc = 0x00;
-    
-//     return p;
-// }
-
-void makePacket(packet_t* p, unsigned char *data, int size, int sequence, int type) {
-    p->startDelimiter = START_DELIMITER;
-    p->size = size;
-    p->sequence = sequence;
-    p->type = type;
+void makePacket(packet_t* packet, unsigned char *data, int size, int sequence, int type) {
+    packet->startDelimiter = START_DELIMITER;
+    packet->size = size;
+    packet->sequence = sequence;
+    packet->type = type;
     // for (int i = 0; i < size; i++) {
     //     p->data[i] = data[i];
     // }
-    memcpy(p->data, data, size);
-    p->vrc = calculateVRC(p);
+    memcpy(packet->data, data, size);
+    packet->vrc = calculateVRC(packet);
+}
 
-    if (type != 14 && type != 15) {
-        printf("VRC: %d\n", p->vrc);
-        printf("Sequence: %d\n", p->sequence);
-        printf("Type: %d\n", p->type);
-        printf("Size: %d\n", p->size);
+void packetToBuffer(packet_t *packet, unsigned char *data) {
+    for (int i = 0; i < packet->size; i++) {
+        data[i] = packet->data[i];
     }
 }
 
-unsigned char* packetToBuffer(packet_t *p) {
-    unsigned int size = p->size;
-    unsigned char* message = malloc(sizeof(unsigned char) * size);
-
-    for (int i = 0; i < size; i++) {
-        message[i] = p->data[i];
-    }
-    // if (startDelimiter == '~') {
-    //     printf("%s", message);
-    // }
-
-    return message;
+void sendAck(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
+    makePacket(sentMessage, NULL, 0, receivedMessage->sequence, 14);
+    printf("\nSent message:\n");
+    printPacket(sentMessage);
+    send(socket, sentMessage, MESSAGE_SIZE, 0);
 }
 
-void sendAck(int socket, packet_t* packet) {
-    printf("Sending ACK\n");
-    makePacket(packet, NULL, 0, packet->sequence, 14);
-    send(socket, packet, MESSAGE_SIZE, 0);
+void sendNack(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
+    makePacket(sentMessage, NULL, 0, receivedMessage->sequence, 15);
+    printf("\nSent message:\n");
+    printPacket(sentMessage);
+    send(socket, sentMessage, MESSAGE_SIZE, 0);
 }
 
-void sendNack(int socket, packet_t* packet) {
-    printf("Sending NACK\n");
-    makePacket(packet, NULL, 0, packet->sequence, 15);
-    send(socket, packet, MESSAGE_SIZE, 0);
-}
-
-void waitResponse(int socket, packet_t* packet, packet_t* response, int sequence) {
-    while (1) {
-        recv(socket, response, MESSAGE_SIZE, 0);
-        if (response->startDelimiter == '~') {
-            if (response->type == 14 && response->sequence == sequence) {
-                printf("ACK received\n");
-                break;
-            } else if (response->type == 15) {
-                printf("NACK received\n");
-                send(socket, packet, MESSAGE_SIZE, sequence);
-                continue;
-            }
-        }
-    }
-}
-
-// wait response com timeout
-int waitResponseTimeout(int socket, packet_t* packet, packet_t* response, int sequence) {
+int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
     time_t start;
     while (1) {
         start = time(NULL);
         while (time(NULL) - start < 1) {
-            recv(socket, response, MESSAGE_SIZE, 0);
-            if (response->startDelimiter == '~') {
-                if (response->type == 7) {
-                    printf("MD5 received\n");
-                    return 1;
-                } else if (response->type == 14 && response->sequence == sequence) {
-                    printf("ACK received\n");
-                    return 1;
-                } else if (response->type == 15) {
-                    printf("NACK received\n");
-                    break;
+            recv(socket, receivedMessage, MESSAGE_SIZE, 0);
+            #ifdef LOOPBACK
+            if (receivedMessage->startDelimiter == '~' && receivedMessage->origin != sentMessage->origin)
+            #else
+            if (receivedMessage->startDelimiter == '~')
+            #endif
+            {
+                if (receivedMessage->sequence == sentMessage->sequence) {
+                    printf("\nReceived message:\n");
+                    printPacket(receivedMessage);
+                    switch (receivedMessage->type) {
+                        case 7:
+                            printf("MD5 received\n");
+                            return 1;
+                        case 14:
+                            printf("ACK received\n");
+                            return 1;
+                        case 15:
+                            printf("NACK received\n");
+                            send(socket, sentMessage, MESSAGE_SIZE, 0);
+                            printPacket(sentMessage);
+                            break;
+                    }
                 }
             }
         }
         if (time(NULL) - start >= 1) {
             printf("Timeout\n");
         }
-        send(socket, packet, MESSAGE_SIZE, 0);
-        printPacket(packet);
-        printf("%d\n", sequence);
+        send(socket, sentMessage, MESSAGE_SIZE, 0);
+        printPacket(sentMessage);
     }
     return 0;
 }
@@ -117,14 +86,54 @@ unsigned char calculateVRC(packet_t* packet) {
     return vrc;
 }
 
-void printPacket(packet_t* p) {
-    printf("VRC: %d\n", p->vrc);
-    printf("Sequence: %d\n", p->sequence);
-    printf("Type: %d\n", p->type);
-    printf("Size: %d\n", p->size);
+void printPacket(packet_t* packet) {
+    #ifdef LOOPBACK
+    printf("Origin: %d\n", packet->origin);
+    #endif
+    printf("VRC: %d\n", packet->vrc);
+    printf("Sequence: %d\n", packet->sequence);
+    printf("Type: %d\n", packet->type);
+    printf("Size: %d\n", packet->size);
 }
 
-void sendMessage(int socket, packet_t* packet, packet_t* response) {
-    send(socket, packet, MESSAGE_SIZE, 0);
-    waitResponseTimeout(socket, packet, response, packet->sequence);
+void sendMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
+    send(socket, sentMessage, MESSAGE_SIZE, 0);
+    printf("\nSent message:\n");
+    printPacket(sentMessage);
+    waitResponseTimeout(socket, sentMessage, receivedMessage);
+}
+
+int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id) {
+    if (receivedMessage->startDelimiter == '~') {
+        unsigned char vrc = calculateVRC(receivedMessage);
+
+        // Condição loopback
+        #ifdef LOOPBACK
+        if (receivedMessage->origin == id) {
+            return 0;
+        }
+        #endif
+
+        // Duplicate message
+        if (receivedMessage->sequence == *sequence) {
+            return 0;
+        }
+
+        // Sends an ACK if the sequence number received is lower than the expected
+        if ((receivedMessage->sequence == (*sequence - 1)) || (receivedMessage->sequence == 63 && sequence == 0)) {
+            sendAck(socket, sentMessage, receivedMessage);
+            return 0;
+        }
+        // Sends an ACK if the sequence number received is higher than the expected
+        else if ((receivedMessage->sequence > (*sequence + 1) % 64) || (receivedMessage->vrc != vrc)) {
+            sendNack(socket, sentMessage, receivedMessage);
+            return 0;
+        }
+
+        printf("\nReceived message:\n");
+        printPacket(receivedMessage);
+
+        return 1;
+    }
+    return 0;
 }

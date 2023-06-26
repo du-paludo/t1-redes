@@ -9,101 +9,83 @@
 #include <openssl/md5.h>
 
 #define ETHERNET "lo"
-
-// arrumar arquivo a mais sendo criado
-// implementar para-e-espera
-// arrumar ack
+#define ID 1
 
 int main(int argc, char** argv) {
-    // char* command = malloc(sizeof(char) * 100);
-    // char* path = malloc(sizeof(char) * 100);
-    unsigned char* data = malloc(sizeof(unsigned char)*63);
+    unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
     FILE* file;
 
-    int socket; 
-    packet_t* packet = malloc(sizeof(packet_t));
-    packet_t* response = malloc(sizeof(packet_t));
-    unsigned int type;
-    unsigned int size;
-    unsigned char vrc;
+    int socket = rawSocketConnection(ETHERNET);
+    packet_t* sentMessage = malloc(69);
+    #ifdef LOOPBACK
+    sentMessage->origin = 1;
+    #endif
+    packet_t* receivedMessage = malloc(69);
+
     int sequence = -1;
-    unsigned char startDelimiter;
 
-    unsigned char* serverMD5;
-
-    socket = rawSocketConnection(ETHERNET);
+    unsigned char* serverMD5 = malloc(sizeof(unsigned char)*MD5_DIGEST_LENGTH);
 
     while (1) {
-        if (recv(socket, packet, MESSAGE_SIZE, 0)) {
-            startDelimiter = packet->startDelimiter;
-            if (startDelimiter == '~') {
-                data = packetToBuffer(packet);
-                size = packet->size;
-                type = packet->type;
-                vrc = calculateVRC(packet);
+        if (recv(socket, receivedMessage, MESSAGE_SIZE, 0)) {
+            if (checkIntegrity(socket, sentMessage, receivedMessage, &sequence, ID)) {
+                packetToBuffer(receivedMessage, data);
+                sequence = receivedMessage->sequence;
 
-                // Condição loopback
-                if (packet->sequence == sequence || packet->type == 14 || packet->type == 15) {
-                    continue;
-                }
-
-                if ((packet->sequence == sequence-1) || (packet->sequence == 63 && sequence == 0)) {
-                    printf("%d %d\n", packet->sequence, sequence);
-                    sendAck(socket, packet);
-                    continue;
-                }
-                if ((packet->sequence > (sequence + 1) % 64) || (packet->vrc != vrc)) {
-                    sendNack(socket, packet);
-                    continue;
-                }
-
-                printPacket(packet);
-
-                sequence = packet->sequence;
-
-                switch (type) {
+                switch (receivedMessage->type) {
                     case 0:
                         file = openFile(data);
-                        sendAck(socket, packet);
+                        sendAck(socket, sentMessage, receivedMessage);
                         break;
                     case 1:
-                        sendAck(socket, packet);
+                        sendAck(socket, sentMessage, receivedMessage);
+                        break;
+                    case 2:
+                        sendAck(socket, sentMessage, receivedMessage);
+                        sendFile(socket, sentMessage, receivedMessage, (char*) data, &sequence);
                         break;
                     case 4:
                         changeDirectory((char*) data);
-                        sendAck(socket, packet);
+                        sendAck(socket, sentMessage, receivedMessage);
                         break;
                     case 5:
-                        printf("OK\n");
-                        serverMD5 = getMD5Hash((char*) data);
-                        for (int i = 0; i < MD5_DIGEST_LENGTH; i++) {
-                            printf("%02x", serverMD5[i]);
-                        }
-                        // printf("OK\n");
-                        makePacket(packet, serverMD5, MD5_DIGEST_LENGTH, 0, 7);
-                        send(socket, packet, MESSAGE_SIZE, 0);
+                        #ifdef LOOPBACK
+                        printf("Origin before: %d\n", sentMessage->origin);
+                        #endif
+                        getMD5Hash((char*) data, serverMD5);
+                        #ifdef LOOPBACK
+                        printf("Origin after: %d\n", sentMessage->origin);
+                        #endif
+                        makePacket(sentMessage, serverMD5, MD5_DIGEST_LENGTH, receivedMessage->sequence, 7);
+                        send(socket, sentMessage, MESSAGE_SIZE, 0);
+                        printf("Sent message:\n");
+                        printPacket(sentMessage);
                         break;
                     case 8:
-                        for (int i = 0; i < size; i++) {
+                        for (int i = 0; i < receivedMessage->size; i++) {
                             // printf("%c", data[i]);
                         }
-                        saveFile(file, data, size);
-                        sendAck(socket, packet);
+                        saveFile(file, data, receivedMessage->size);
+                        sendAck(socket, sentMessage, receivedMessage);
                         break;
                     case 9:
                         if (file) {
                             fclose(file);
                             file = NULL;
                         }
-                        sendAck(socket, packet);
+                        sendAck(socket, sentMessage, receivedMessage);
                         break;
                     case 10:
-                        sendAck(socket, packet);
+                        sendAck(socket, sentMessage, receivedMessage);
                         break;
                 }
             }
         }
     }
+    free(data);
+    free(sentMessage);
+    free(receivedMessage);
+    free(serverMD5);
 
     return 0;
 }
