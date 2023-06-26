@@ -11,4 +11,6 @@ FILE* openFile();
 
 void saveFile(FILE* file, unsigned char* data, int size);
 
+int split (const char *str, char c, char ***arr);
+
 #endif

@@ -72,49 +72,12 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
     makePacket(sentMessage, (unsigned char*) fileName, strlen(fileName) + 1, (++(*sequence) % MAX_SEQUENCE), 2);
     sendMessage(socket, sentMessage, receivedMessage);
 
-    //     case 7:
-    //     return 1;
-    // case 8:
-    //     printf("Data received\n");
-    //     sendAck(socket, sentMessage, receivedMessage);
-    //     return 1;
-    // case 9:
-    //     printf("End of file\n");
-    //     return 1;
-
     int vrc;
     unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
 
     while (1) {
         if (recv(socket, receivedMessage, MESSAGE_SIZE, 0)) {
-            if (receivedMessage->startDelimiter == '~') {
-                packetToBuffer(receivedMessage, data);
-                vrc = calculateVRC(receivedMessage);
-
-                // Condição loopback
-                #ifdef LOOPBACK
-                if (receivedMessage->origin == 0) {
-                    continue;
-                }
-                #endif
-
-                if (receivedMessage->sequence == *sequence) {
-                    continue;
-                } 
-                printf("\nReceived message:\n");
-                printPacket(receivedMessage);
-
-                if ((receivedMessage->sequence == (*sequence - 1)) || (receivedMessage->sequence == 63 && sequence == 0)) {
-                    sendAck(socket, sentMessage, receivedMessage);
-                    continue;
-                }
-                if ((receivedMessage->sequence > (*sequence + 1) % 64) || (receivedMessage->vrc != vrc)) {
-                    sendNack(socket, sentMessage, receivedMessage);
-                    continue;
-                }
-
-                *sequence = receivedMessage->sequence;
-
+            if (checkIntegrity(socket, sentMessage, receivedMessage, sequence, 0)) {
                 switch (receivedMessage->type) {
                     case 8:
                         printf("Data received\n");
@@ -123,6 +86,7 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
                         break;
                     case 9:
                         printf("End of file\n");
+                        sendAck(socket, sentMessage, receivedMessage);
                         fclose(file);
                         free(data);
                         return;
@@ -130,7 +94,6 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
             }
         }
     }
-
 }
 
 // void restoreMultipleBackup(int socket, packet_t* packet, packet_t* response, glob_t* globbuf, int* sequence) {

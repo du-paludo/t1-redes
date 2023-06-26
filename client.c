@@ -14,66 +14,6 @@
 #define MAX_SIZE 6
 #define ID 0
 
-int split (const char *str, char c, char ***arr) {
-    int count = 1;
-    int token_len = 1;
-    int i = 0;
-    char *p;
-    char *t;
-
-    p = str;
-    while (*p != '\0')
-    {
-        if (*p == c)
-            count++;
-        p++;
-    }
-
-    *arr = (char**) malloc(sizeof(char*) * count);
-    if (*arr == NULL)
-        exit(1);
-
-    p = str;
-    while (*p != '\0')
-    {
-        if (*p == c)
-        {
-            (*arr)[i] = (char*) malloc( sizeof(char) * token_len );
-            if ((*arr)[i] == NULL)
-                exit(1);
-
-            token_len = 0;
-            i++;
-        }
-        p++;
-        token_len++;
-    }
-    (*arr)[i] = (char*) malloc( sizeof(char) * token_len );
-    if ((*arr)[i] == NULL)
-        exit(1);
-
-    i = 0;
-    p = str;
-    t = ((*arr)[i]);
-    while (*p != '\0')
-    {
-        if (*p != c && *p != '\0')
-        {
-            *t = *p;
-            t++;
-        }
-        else
-        {
-            *t = '\0';
-            i++;
-            t = ((*arr)[i]);
-        }
-        p++;
-    }
-
-    return count;
-}
-
 int main(int argc, char** argv) {
     int socket;
     socket = rawSocketConnection(ETHERNET);
@@ -82,14 +22,15 @@ int main(int argc, char** argv) {
     char** inputParsed = NULL;
     int capacity;
     char* command;
+    glob_t globbuf;
 
     int sequence = -1;
     
-    packet_t* sentMessage = malloc(69);
+    packet_t* sentMessage = malloc(sizeof(packet_t)+1);
     #ifdef LOOPBACK
     sentMessage->origin = 0;
     #endif
-    packet_t* receivedMessage = malloc(69);
+    packet_t* receivedMessage = malloc(sizeof(packet_t)+1);
 
     unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
 
@@ -102,16 +43,12 @@ int main(int argc, char** argv) {
         command = inputParsed[0];
 
         if (!(strcmp(command, "cd"))) {
-            char* path = inputParsed[1];
-            changeDirectory(path);
+            changeDirectory(inputParsed[1]);
         }
         else if (!(strcmp(command, "backup"))) {
-            char* pattern = inputParsed[1];
-            glob_t globbuf;
-            glob(pattern, 0, NULL, &globbuf);
+            glob(inputParsed[1], 0, NULL, &globbuf);
             if (globbuf.gl_pathc == 1) {
-                char* fileName = globbuf.gl_pathv[0];
-                makeBackup(socket, sentMessage, receivedMessage, fileName, &sequence);
+                makeBackup(socket, sentMessage, receivedMessage, globbuf.gl_pathv[0], &sequence);
             } else {
                 makeMultipleBackup(socket, sentMessage, receivedMessage, &globbuf, &sequence);
             }

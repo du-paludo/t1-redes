@@ -11,9 +11,6 @@ void makePacket(packet_t* packet, unsigned char *data, int size, int sequence, i
     packet->size = size;
     packet->sequence = sequence;
     packet->type = type;
-    // for (int i = 0; i < size; i++) {
-    //     p->data[i] = data[i];
-    // }
     memcpy(packet->data, data, size);
     packet->vrc = calculateVRC(packet);
 }
@@ -88,11 +85,11 @@ unsigned char calculateVRC(packet_t* packet) {
 
 void printPacket(packet_t* packet) {
     #ifdef LOOPBACK
-    printf("Origin: %d\n", packet->origin);
+    printf("Origin: %d ", packet->origin);
     #endif
-    printf("VRC: %d\n", packet->vrc);
-    printf("Sequence: %d\n", packet->sequence);
-    printf("Type: %d\n", packet->type);
+    printf("VRC: %d ", packet->vrc);
+    printf("Sequence: %d ", packet->sequence);
+    printf("Type: %d ", packet->type);
     printf("Size: %d\n", packet->size);
 }
 
