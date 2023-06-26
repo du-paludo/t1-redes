@@ -63,6 +63,8 @@ void makeMultipleBackup(int socket, packet_t* sentMessage, packet_t* receivedMes
 }
 
 void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage, char* fileName, int* sequence) {
+    unsigned char* buffer = malloc(sizeof(unsigned char)*MESSAGE_SIZE);
+
     FILE* file = fopen(fileName, "wb");
     if (!file) {
         printf("Erro ao abrir o arquivo.");
@@ -76,7 +78,8 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
     unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
 
     while (1) {
-        if (recv(socket, receivedMessage, MESSAGE_SIZE, 0)) {
+        if (recv(socket, buffer, MESSAGE_SIZE, 0)) {
+            bufferToPacket(receivedMessage, buffer);
             if (checkIntegrity(socket, sentMessage, receivedMessage, sequence, 0)) {
                 switch (receivedMessage->type) {
                     case 8:
@@ -94,6 +97,8 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
             }
         }
     }
+
+    free(buffer);
 }
 
 // void restoreMultipleBackup(int socket, packet_t* packet, packet_t* response, glob_t* globbuf, int* sequence) {
@@ -115,7 +120,7 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
 
 void changeDirectory(char* path) {
     if (chdir(path) != 0) {
-        printf("Directory doesn't exist\n");
+        printf("Directory %s doesn't exist\n", path);
     }
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {

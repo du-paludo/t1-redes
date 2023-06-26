@@ -64,6 +64,7 @@
     "if.h": "c",
     "backup.h": "c",
     "filehelper.h": "c",
-    "glob.h": "c"
-  }
+    "glob.h": "c",
+    "md5.h": "c"
+}
 }

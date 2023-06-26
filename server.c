@@ -8,7 +8,7 @@
 #include "backup.h"
 #include <openssl/md5.h>
 
-#define ETHERNET "lo"
+#define ETHERNET "enp3s0"
 #define ID 1
 
 int main(int argc, char** argv) {
@@ -25,16 +25,21 @@ int main(int argc, char** argv) {
     int sequence = -1;
 
     unsigned char* serverMD5 = malloc(sizeof(unsigned char)*MD5_DIGEST_LENGTH);
+    unsigned char* buffer = malloc(sizeof(unsigned char)*MESSAGE_SIZE);
 
     while (1) {
-        if (recv(socket, receivedMessage, MESSAGE_SIZE, 0)) {
+        if (recv(socket, buffer, MESSAGE_SIZE, 0)) {
+            bufferToPacket(receivedMessage, buffer);
             if (checkIntegrity(socket, sentMessage, receivedMessage, &sequence, ID)) {
-                packetToBuffer(receivedMessage, data);
+                for (int i = 0; i < receivedMessage->size; i++) {
+                    printf("%c", buffer[i+4]);
+                    printf("%c", data[i]);
+                }
                 sequence = receivedMessage->sequence;
 
                 switch (receivedMessage->type) {
                     case 0:
-                        file = openFile(data);
+                        file = openFile(receivedMessage->data);
                         sendAck(socket, sentMessage, receivedMessage);
                         break;
                     case 1:
@@ -42,17 +47,17 @@ int main(int argc, char** argv) {
                         break;
                     case 2:
                         sendAck(socket, sentMessage, receivedMessage);
-                        sendFile(socket, sentMessage, receivedMessage, (char*) data, &sequence);
+                        sendFile(socket, sentMessage, receivedMessage, (char*) receivedMessage->data, &sequence);
                         break;
                     case 4:
-                        changeDirectory((char*) data);
+                        changeDirectory((char*) receivedMessage->data);
                         sendAck(socket, sentMessage, receivedMessage);
                         break;
                     case 5:
                         #ifdef LOOPBACK
                         printf("Origin before: %d\n", sentMessage->origin);
                         #endif
-                        getMD5Hash((char*) data, serverMD5);
+                        getMD5Hash((char*) receivedMessage->data, serverMD5);
                         #ifdef LOOPBACK
                         printf("Origin after: %d\n", sentMessage->origin);
                         #endif
@@ -65,7 +70,7 @@ int main(int argc, char** argv) {
                         for (int i = 0; i < receivedMessage->size; i++) {
                             // printf("%c", data[i]);
                         }
-                        saveFile(file, data, receivedMessage->size);
+                        saveFile(file, receivedMessage->data, receivedMessage->size);
                         sendAck(socket, sentMessage, receivedMessage);
                         break;
                     case 9:
@@ -82,6 +87,7 @@ int main(int argc, char** argv) {
             }
         }
     }
+    free(buffer);
     free(data);
     free(sentMessage);
     free(receivedMessage);

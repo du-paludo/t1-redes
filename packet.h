@@ -33,9 +33,7 @@
 
 struct packet {
     unsigned char startDelimiter:8;  // 011111110
-    #ifdef LOOPBACK
     unsigned int origin:8;
-    #endif
     unsigned int size:6;
     unsigned int sequence:6;
     unsigned int type:4;
@@ -52,7 +50,9 @@ void sendNack(int socket, packet_t* sentMessage, packet_t* receivedMessage);
 
 int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMessage);
 
-void packetToBuffer(packet_t *packet, unsigned char* data);
+void bufferToPacket(packet_t* packet, unsigned char* buffer);
+
+unsigned char* packetToBuffer(packet_t* packet);
 
 unsigned char calculateVRC(packet_t* packet);
 

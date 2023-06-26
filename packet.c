@@ -15,32 +15,85 @@ void makePacket(packet_t* packet, unsigned char *data, int size, int sequence, i
     packet->vrc = calculateVRC(packet);
 }
 
-void packetToBuffer(packet_t *packet, unsigned char *data) {
+void bufferToPacket(packet_t* packet, unsigned char* buffer) {
+    packet->startDelimiter = buffer[0];
+    #ifdef LOOPBACK
+    packet->origin = buffer[1];
+    packet->size = buffer[2] >> 2;
+    packet->sequence = buffer[2] << 4 | buffer[3] >> 4;
+    packet->type = buffer[3] & 0x0F;
     for (int i = 0; i < packet->size; i++) {
-        data[i] = packet->data[i];
+        packet->data[i] = buffer[i + 4];
     }
+    packet->vrc = buffer[packet->size + 4];
+    #else
+    packet->size = buffer[1] >> 2;
+    packet->sequence = buffer[1] << 4 | buffer[2] >> 4;
+    packet->type = buffer[2] & 0x0F;
+    for (int i = 0; i < packet->size; i++) {
+        packet->data[i] = buffer[i + 3];
+    }
+    packet->vrc = buffer[packet->size + 3];
+    #endif
 }
+
+unsigned char* packetToBuffer(packet_t* packet) {
+    #ifdef LOOPBACK
+    unsigned char* buffer = malloc(sizeof(unsigned char) * (packet->size+5));
+    buffer[0] = packet->startDelimiter;
+    buffer[1] = packet->origin;
+    buffer[2] = packet->size << 2 | packet->sequence >> 4;
+    buffer[3] = packet->sequence << 4 | packet->type;
+    for (int i = 0; i < packet->size; i++) {
+        buffer[i + 4] = packet->data[i];
+    }
+    buffer[packet->size + 4] = packet->vrc;
+    #else
+    unsigned char* buffer = malloc(sizeof(unsigned char) * (packet->size+5));
+    buffer[0] = packet->startDelimiter;
+    buffer[1] = packet->size << 2 | packet->sequence >> 4;
+    buffer[2] = packet->sequence << 4 | packet->type;
+    for (int i = 0; i < packet->size; i++) {
+        buffer[i + 3] = packet->data[i];
+    }
+    buffer[packet->size + 3] = packet->vrc;
+    #endif
+    // printf("\nBuffer:\n");
+    // for (int i = 0; i < packet->size + 4; i++) {
+    //     printf("%02x", buffer[i]);
+    // }
+    return buffer;
+}
+
 
 void sendAck(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
     makePacket(sentMessage, NULL, 0, receivedMessage->sequence, 14);
     printf("\nSent message:\n");
     printPacket(sentMessage);
-    send(socket, sentMessage, MESSAGE_SIZE, 0);
+    unsigned char* buffer = packetToBuffer(sentMessage);
+    send(socket, buffer, MESSAGE_SIZE, 0);
+    free(buffer);
 }
 
 void sendNack(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
     makePacket(sentMessage, NULL, 0, receivedMessage->sequence, 15);
     printf("\nSent message:\n");
     printPacket(sentMessage);
-    send(socket, sentMessage, MESSAGE_SIZE, 0);
+    unsigned char* buffer = packetToBuffer(sentMessage);
+    send(socket, buffer, MESSAGE_SIZE, 0);
+    free(buffer);
 }
 
 int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
     time_t start;
+    unsigned char* sendBuffer = packetToBuffer(sentMessage);
+    unsigned char* receivedBuffer = malloc(sizeof(unsigned char) * MESSAGE_SIZE);
+
     while (1) {
         start = time(NULL);
         while (time(NULL) - start < 1) {
-            recv(socket, receivedMessage, MESSAGE_SIZE, 0);
+            recv(socket, receivedBuffer, MESSAGE_SIZE, 0);
+            bufferToPacket(receivedMessage, receivedBuffer);
             #ifdef LOOPBACK
             if (receivedMessage->startDelimiter == '~' && receivedMessage->origin != sentMessage->origin)
             #else
@@ -53,13 +106,17 @@ int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMes
                     switch (receivedMessage->type) {
                         case 7:
                             printf("MD5 received\n");
+                            free(sendBuffer);
+                            free(receivedBuffer);
                             return 1;
                         case 14:
                             printf("ACK received\n");
+                            free(sendBuffer);
+                            free(receivedBuffer);
                             return 1;
                         case 15:
                             printf("NACK received\n");
-                            send(socket, sentMessage, MESSAGE_SIZE, 0);
+                            send(socket, sendBuffer, MESSAGE_SIZE, 0);
                             printPacket(sentMessage);
                             break;
                     }
@@ -69,7 +126,9 @@ int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMes
         if (time(NULL) - start >= 1) {
             printf("Timeout\n");
         }
-        send(socket, sentMessage, MESSAGE_SIZE, 0);
+        send(socket, sendBuffer, MESSAGE_SIZE, 0);
+        free(sendBuffer);
+        free(receivedBuffer);
         printPacket(sentMessage);
     }
     return 0;
@@ -94,7 +153,9 @@ void printPacket(packet_t* packet) {
 }
 
 void sendMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
-    send(socket, sentMessage, MESSAGE_SIZE, 0);
+    unsigned char* buffer = packetToBuffer(sentMessage);
+    send(socket, buffer, MESSAGE_SIZE, 0);
+    free(buffer);
     printf("\nSent message:\n");
     printPacket(sentMessage);
     waitResponseTimeout(socket, sentMessage, receivedMessage);
