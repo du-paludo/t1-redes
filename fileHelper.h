@@ -7,7 +7,7 @@ int findFileSize(FILE* file);
 
 int findNumberOfMessages(long fileSize);
 
-FILE* openFile();
+FILE* openFile(unsigned char* name, const char* mode);
 
 void saveFile(FILE* file, unsigned char* data, int size);
 

@@ -10,7 +10,7 @@
 #include <openssl/md5.h>
 
 #define ETHERNET "lo"
-#define TAM_INPUT 100
+#define TAM_INPUT 200
 #define ID 0
 
 // CHECAR MAIS ERROS
@@ -61,6 +61,7 @@ int main(int argc, char** argv) {
 
     unsigned char* clientMD5 = malloc(MD5_DIGEST_LENGTH * sizeof(unsigned char));
     unsigned char* serverPath = calloc(TAM_INPUT, sizeof(unsigned char));
+    strcpy((char*) serverPath, "/home/mint/t1-redes/");
 
     while (1) {
         input = malloc(TAM_INPUT * sizeof(char));
@@ -87,16 +88,8 @@ int main(int argc, char** argv) {
             free(globbuf);
         }
         else if (!(strcmp(inputParsed[0], "restore"))) {
-            char* fileName = inputParsed[1];
-            strcat(serverPath, fileName);
-            globuff = malloc(sizeof(glob_t));
-            glob((const char*) serverPath, 0, NULL, globbuf);
-            if (globuff->gl_pathc == 1) {
-                restoreBackup(socket, sentMessage, receivedMessage, globbuf->gl_pathv[0], &sequence);
-            } else {
-                restoreMultipleBackup(socket, sentMessage, receivedMessage, globbuf, &sequence);
-            }
-            free(globbuf);
+            char* pattern = inputParsed[1];
+            restoreBackup(socket, sentMessage, receivedMessage, pattern, &sequence);
         }
         else if (!(strcmp(inputParsed[0], "verify"))) {
             char* fileName = inputParsed[1];
@@ -118,7 +111,7 @@ int main(int argc, char** argv) {
         else if (!(strcmp(inputParsed[0], "setdir"))) {
             char* path = inputParsed[1];
             makePacket(sentMessage, (unsigned char*) path, strlen(path), (++sequence % MAX_SEQUENCE), 4);
-            strcat(serverPath, path);
+            strcat((char*) serverPath, path);
             sendMessage(socket, sentMessage, receivedMessage);
         }
         else if (!(strcmp(inputParsed[0], "exit"))) {

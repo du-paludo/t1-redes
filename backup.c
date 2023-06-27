@@ -62,53 +62,45 @@ void makeMultipleBackup(int socket, packet_t* sentMessage, packet_t* receivedMes
     sendMessage(socket, sentMessage, receivedMessage);
 }
 
-void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage, char* fileName, int* sequence) {
-    unsigned char* buffer = malloc(sizeof(unsigned char)*MESSAGE_SIZE);
-
-    FILE* file = fopen(fileName, "wb");
-    if (!file) {
-        printf("Erro ao abrir o arquivo.");
-        return;
-    }
-    
-    makePacket(sentMessage, (unsigned char*) fileName, strlen(fileName) + 1, (++(*sequence) % MAX_SEQUENCE), 2);
+void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage, char* pattern, int* sequence) {
+    makePacket(sentMessage, (unsigned char*) pattern, strlen(pattern) + 1, (++(*sequence) % MAX_SEQUENCE), 3);
     sendMessage(socket, sentMessage, receivedMessage);
-
-    unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
+    
+    // unsigned char* buffer = malloc(sizeof(unsigned char)*MESSAGE_SIZE);
+    // unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
+    unsigned char* fileName;
+    FILE* file;
     while (1) {
         receiveMessage(socket, sentMessage, receivedMessage, sequence, 0);
         switch (receivedMessage->type) {
-        case 8:
-            printf("Data received\n");
-            saveFile(file, receivedMessage->data, receivedMessage->size);
-            sendResponse(socket, sentMessage, receivedMessage, 14);
-            break;
-        case 9:
-            printf("End of file\n");
-            sendResponse(socket, sentMessage, receivedMessage, 14);
-            fclose(file);
-            free(data);
-            return;
+            case 6:
+                fileName = calloc((receivedMessage->size + 1), sizeof(unsigned char));
+                memcpy(fileName, receivedMessage->data, receivedMessage->size);
+                file = fopen((char*) fileName, "wb");
+                if (!file) {
+                    printf("Erro ao abrir o arquivo.");
+                    return;
+                }
+                free(fileName);
+                sendResponse(socket, sentMessage, receivedMessage, 14);
+                break;
+            case 8:
+                printf("Data received\n");
+                saveFile(file, receivedMessage->data, receivedMessage->size);
+                sendResponse(socket, sentMessage, receivedMessage, 14);
+                break;
+            case 9:
+                printf("End of file\n");
+                sendResponse(socket, sentMessage, receivedMessage, 14);
+                fclose(file);
+                // free(data);
+                break;
+            case 10:
+                printf("End of group\n");
+                sendResponse(socket, sentMessage, receivedMessage, 14);
+                return;
         }
     }
-    free(buffer);
-}
-
-void restoreMultipleBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage, glob_t* globbuf, int* sequence) {
-    // Envia mensagem de início de grupo de arquivos
-    makePacket(packet, NULL, 0, (++(*sequence) % MAX_SEQUENCE), 3);
-    sendMessage(socket, packet, response);
-
-    for (int i = 0; i < globbuf->gl_pathc; i++) {
-        // Para cada arquivo, recupera backup
-        char* fileName = globbuf->gl_pathv[i];
-        printf("%s\n", fileName);
-        restoreBackup(socket, sentMessage, receivedMessage, fileName, sequence);
-    }
-
-    // Envia mensagem de fim de grupo de arquivos
-    makePacket(packet, NULL, 0, (++(*sequence) % MAX_SEQUENCE), 10);
-    sendMessage(socket, packet, response);
 }
 
 int changeDirectory(char* path) {
@@ -180,13 +172,17 @@ int getMD5Hash(char* fileName, unsigned char* MD5Hash) {
 }
 
 int sendFile(int socket, packet_t* sentMessage, packet_t* receivedMessage, char* fileName, int* sequence) {
-    FILE* file = fopen(fileName, "rb");
+    FILE* file = fopen((char*) fileName, "rb");
+    printf("%s\n", fileName);
     unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
 
     if (!file) {
         printf("Erro ao abrir o arquivo.");
         return -1;
     }
+
+    makePacket(sentMessage, (unsigned char*) fileName, strlen(fileName), (++(*sequence) % MAX_SEQUENCE), 6);
+    sendMessage(socket, sentMessage, receivedMessage);
 
     long fileSize = findFileSize(file);
     printf("%ld\n", fileSize);

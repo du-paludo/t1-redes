@@ -28,12 +28,13 @@ int main(int argc, char **argv)
     unsigned char* serverMD5;
     unsigned char* path;
     unsigned char* fileName;
+    glob_t* globbuf;
 
     while (1) {
         receiveMessage(socket, sentMessage, receivedMessage, &sequence, ID);
         switch (receivedMessage->type) {
             case 0:
-                file = openFile(receivedMessage->data);
+                file = openFile(receivedMessage->data, "wb");
                 sendResponse(socket, sentMessage, receivedMessage, 14);
                 break;
             case 1:
@@ -41,10 +42,18 @@ int main(int argc, char **argv)
                 break;
             case 2:
                 sendResponse(socket, sentMessage, receivedMessage, 14);
-                sendFile(socket, sentMessage, receivedMessage, (char*) receivedMessage->data, &sequence);
                 break;
             case 3:
                 sendResponse(socket, sentMessage, receivedMessage, 14);
+                globbuf = malloc(sizeof(glob_t));
+                glob((const char*) receivedMessage->data, 0, NULL, globbuf);
+                printf("globbuf->gl_pathc: %ld\n", globbuf->gl_pathc);
+                for (int i = 0; i < globbuf->gl_pathc; i++) {
+                    sendFile(socket, sentMessage, receivedMessage, globbuf->gl_pathv[i], &sequence);
+                }
+                free(globbuf);
+                makePacket(sentMessage, NULL, 0, (++sequence % MAX_SEQUENCE), 10);
+                sendMessage(socket, sentMessage, receivedMessage);
                 break;
             case 4:
                 path = malloc(sizeof(unsigned char) * (receivedMessage->size + 1));
@@ -58,6 +67,7 @@ int main(int argc, char **argv)
                     sendResponse(socket, sentMessage, receivedMessage, 12);
                 }
                 sendResponse(socket, sentMessage, receivedMessage, 14);
+                free(path);
                 break;
             case 5:
                 serverMD5 = malloc(sizeof(unsigned char)*MD5_DIGEST_LENGTH);
