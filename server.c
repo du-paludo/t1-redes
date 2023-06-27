@@ -43,6 +43,9 @@ int main(int argc, char **argv)
                 sendResponse(socket, sentMessage, receivedMessage, 14);
                 sendFile(socket, sentMessage, receivedMessage, (char*) receivedMessage->data, &sequence);
                 break;
+            case 3:
+                sendResponse(socket, sentMessage, receivedMessage, 14);
+                break;
             case 4:
                 path = malloc(sizeof(unsigned char) * (receivedMessage->size + 1));
                 memset(path, 0, receivedMessage->size + 1);

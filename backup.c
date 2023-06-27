@@ -94,22 +94,22 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
     free(buffer);
 }
 
-// void restoreMultipleBackup(int socket, packet_t* packet, packet_t* response, glob_t* globbuf, int* sequence) {
-//     // Envia mensagem de início de grupo de arquivos
-//     makePacket(packet, NULL, 0, (++(*sequence) % MAX_SEQUENCE), 3);
-//     sendMessage(socket, packet, response);
-    
-//     for (int i = 0; i < globbuf->gl_pathc; i++) {
-//         // Para cada arquivo, faz backup
-//         char* fileName = globbuf->gl_pathv[i];
-//         printf("%s\n", fileName);
-//         restoreBackup(socket, fileName, sequence);
-//     }
+void restoreMultipleBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage, glob_t* globbuf, int* sequence) {
+    // Envia mensagem de início de grupo de arquivos
+    makePacket(packet, NULL, 0, (++(*sequence) % MAX_SEQUENCE), 3);
+    sendMessage(socket, packet, response);
 
-//     // Envia mensagem de fim de grupo de arquivos
-//     makePacket(packet, NULL, 0, (++(*sequence) % MAX_SEQUENCE), 10);
-//     sendMessage(socket, packet, response);
-// }
+    for (int i = 0; i < globbuf->gl_pathc; i++) {
+        // Para cada arquivo, recupera backup
+        char* fileName = globbuf->gl_pathv[i];
+        printf("%s\n", fileName);
+        restoreBackup(socket, sentMessage, receivedMessage, fileName, sequence);
+    }
+
+    // Envia mensagem de fim de grupo de arquivos
+    makePacket(packet, NULL, 0, (++(*sequence) % MAX_SEQUENCE), 10);
+    sendMessage(socket, packet, response);
+}
 
 int changeDirectory(char* path) {
     if (chdir(path) != 0) {

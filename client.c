@@ -11,9 +11,7 @@
 
 #define ETHERNET "lo"
 #define TAM_INPUT 100
-#define MAX_SIZE 6
 #define ID 0
-
 
 // CHECAR MAIS ERROS
 // RECUPERAR VÁRIOS ARQUIVOS
@@ -51,7 +49,7 @@ int main(int argc, char** argv) {
     char* input;
     char** inputParsed;
     int capacity;
-    glob_t globbuf;
+    glob_t* globbuf;
 
     int sequence = -1;
     
@@ -62,6 +60,7 @@ int main(int argc, char** argv) {
     #endif
 
     unsigned char* clientMD5 = malloc(MD5_DIGEST_LENGTH * sizeof(unsigned char));
+    unsigned char* serverPath = calloc(TAM_INPUT, sizeof(unsigned char));
 
     while (1) {
         input = malloc(TAM_INPUT * sizeof(char));
@@ -78,16 +77,26 @@ int main(int argc, char** argv) {
             changeDirectory(inputParsed[1]);
         }
         else if (!(strcmp(inputParsed[0], "backup"))) {
-            glob(inputParsed[1], 0, NULL, &globbuf);
-            if (globbuf.gl_pathc == 1) {
-                makeBackup(socket, sentMessage, receivedMessage, globbuf.gl_pathv[0], &sequence);
+            globbuf = malloc(sizeof(glob_t));
+            glob(inputParsed[1], 0, NULL, globbuf);
+            if (globbuf->gl_pathc == 1) {
+                makeBackup(socket, sentMessage, receivedMessage, globbuf->gl_pathv[0], &sequence);
             } else {
-                makeMultipleBackup(socket, sentMessage, receivedMessage, &globbuf, &sequence);
+                makeMultipleBackup(socket, sentMessage, receivedMessage, globbuf, &sequence);
             }
+            free(globbuf);
         }
         else if (!(strcmp(inputParsed[0], "restore"))) {
             char* fileName = inputParsed[1];
-            restoreBackup(socket, sentMessage, receivedMessage, fileName, &sequence);
+            strcat(serverPath, fileName);
+            globuff = malloc(sizeof(glob_t));
+            glob((const char*) serverPath, 0, NULL, globbuf);
+            if (globuff->gl_pathc == 1) {
+                restoreBackup(socket, sentMessage, receivedMessage, globbuf->gl_pathv[0], &sequence);
+            } else {
+                restoreMultipleBackup(socket, sentMessage, receivedMessage, globbuf, &sequence);
+            }
+            free(globbuf);
         }
         else if (!(strcmp(inputParsed[0], "verify"))) {
             char* fileName = inputParsed[1];
@@ -109,6 +118,7 @@ int main(int argc, char** argv) {
         else if (!(strcmp(inputParsed[0], "setdir"))) {
             char* path = inputParsed[1];
             makePacket(sentMessage, (unsigned char*) path, strlen(path), (++sequence % MAX_SEQUENCE), 4);
+            strcat(serverPath, path);
             sendMessage(socket, sentMessage, receivedMessage);
         }
         else if (!(strcmp(inputParsed[0], "exit"))) {
@@ -124,6 +134,7 @@ int main(int argc, char** argv) {
     free(sentMessage);
     free(receivedMessage);
     free(clientMD5);
+    free(serverPath);
 
     return 0;
 }
