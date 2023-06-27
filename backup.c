@@ -74,14 +74,13 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
     makePacket(sentMessage, (unsigned char*) fileName, strlen(fileName) + 1, (++(*sequence) % MAX_SEQUENCE), 2);
     sendMessage(socket, sentMessage, receivedMessage);
 
-    int vrc;
     unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
-
-    receiveMessage(socket, sentMessage, receivedMessage, sequence, 0);
-    switch (receivedMessage->type) {
+    while (1) {
+        receiveMessage(socket, sentMessage, receivedMessage, sequence, 0);
+        switch (receivedMessage->type) {
         case 8:
             printf("Data received\n");
-            fwrite(data, sizeof(char), receivedMessage->size, file);
+            saveFile(file, receivedMessage->data, receivedMessage->size);
             sendResponse(socket, sentMessage, receivedMessage, 14);
             break;
         case 9:
@@ -90,8 +89,8 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
             fclose(file);
             free(data);
             return;
+        }
     }
-
     free(buffer);
 }
 
@@ -187,9 +186,9 @@ int sendFile(int socket, packet_t* sentMessage, packet_t* receivedMessage, char*
     }
 
     long fileSize = findFileSize(file);
-    // printf("%ld\n", fileSize);
+    printf("%ld\n", fileSize);
     int numberOfMessages = findNumberOfMessages(fileSize);
-    // printf("%d\n", numberOfMessages);
+    printf("%d\n", numberOfMessages);
     for (int i = 0; i < numberOfMessages-1; i++) {
         readFile(file, data);
         // printf("\n");
@@ -197,8 +196,8 @@ int sendFile(int socket, packet_t* sentMessage, packet_t* receivedMessage, char*
         sendMessage(socket, sentMessage, receivedMessage);
     }
     readFile(file, data);
-    // printf("%s\n", data);
-    // printf("%ld\n", fileSize % DATA_SIZE);
+    printf("%s\n", data);
+    printf("%ld\n", fileSize % DATA_SIZE);
 
     makePacket(sentMessage, data, (fileSize % DATA_SIZE), (++(*sequence) % MAX_SEQUENCE), 8);
     sendMessage(socket, sentMessage, receivedMessage);

@@ -21,12 +21,31 @@ void freeInputParsed(char** inputParsed, int capacity) {
     free(inputParsed);
 }
 
+int getCommand(char* input, char** inputParsed) {
+    int capacity = 0;
+
+    char* token = strtok(input, " ");
+    inputParsed[0] = malloc(sizeof(char) * (strlen(token)+1));
+    strcpy(inputParsed[0], token);
+    capacity++;
+
+    token = strtok(NULL, " ");
+    if (token != NULL) {
+        inputParsed[1] = malloc(sizeof(char) * (strlen(token)+1));
+        strcpy(inputParsed[1], token);
+        capacity++;
+    }
+    free(input);
+
+    return capacity;
+}
+
 int main(int argc, char** argv) {
     int socket;
     socket = rawSocketConnection(ETHERNET);
 
     char* input;
-    char** inputParsed = NULL;
+    char** inputParsed;
     int capacity;
     glob_t globbuf;
 
@@ -41,11 +60,12 @@ int main(int argc, char** argv) {
     unsigned char* clientMD5 = calloc(MD5_DIGEST_LENGTH, sizeof(unsigned char));
 
     while (1) {
-        input = calloc(TAM_INPUT, sizeof(char));
+        input = malloc(TAM_INPUT * sizeof(char));
         fgets(input, TAM_INPUT, stdin);
         input[strcspn(input, "\n")] = '\0';
-        capacity = split(input, ' ', &inputParsed);
-        free(input);
+        inputParsed = malloc(2 * sizeof(char*));
+        capacity = getCommand(input, inputParsed);
+        // capacity = split(input, ' ', &inputParsed);
         if (inputParsed[0] == NULL) {
             freeInputParsed(inputParsed, capacity);
             continue;
