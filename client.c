@@ -14,6 +14,10 @@
 #define MAX_SIZE 6
 #define ID 0
 
+
+// CHECAR MAIS ERROS
+// RECUPERAR VÁRIOS ARQUIVOS
+
 void freeInputParsed(char** inputParsed, int capacity) {
     for (int i = 0; i < capacity; i++) {
         free(inputParsed[i]);
@@ -51,13 +55,13 @@ int main(int argc, char** argv) {
 
     int sequence = -1;
     
-    packet_t* sentMessage = calloc(1, sizeof(packet_t)+1);
-    packet_t* receivedMessage = calloc(1, sizeof(packet_t)+1);
+    packet_t* sentMessage = malloc(sizeof(packet_t));
+    packet_t* receivedMessage = malloc(sizeof(packet_t));
     #ifdef LOOPBACK
     sentMessage->origin = 0;
     #endif
 
-    unsigned char* clientMD5 = calloc(MD5_DIGEST_LENGTH, sizeof(unsigned char));
+    unsigned char* clientMD5 = malloc(MD5_DIGEST_LENGTH * sizeof(unsigned char));
 
     while (1) {
         input = malloc(TAM_INPUT * sizeof(char));
@@ -93,8 +97,11 @@ int main(int argc, char** argv) {
                 receiveMessage(socket, sentMessage, receivedMessage, &sequence, ID);
                 if (receivedMessage->type == 7) {
                     sendResponse(socket, sentMessage, receivedMessage, 14);
-                    unsigned char* serverMD5 = receivedMessage->data;
+                    unsigned char* serverMD5 = malloc(sizeof(unsigned char) * (receivedMessage->size + 1));
+                    memset(serverMD5, 0, receivedMessage->size + 1);
+                    memcpy(serverMD5, receivedMessage->data, receivedMessage->size);
                     verifyBackup(fileName, serverMD5);
+                    free(serverMD5);
                     break;
                 }
             }

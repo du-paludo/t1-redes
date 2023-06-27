@@ -25,12 +25,12 @@ int makeBackup(int socket, packet_t* packet, packet_t* response, char* fileName,
     int numberOfMessages = findNumberOfMessages(fileSize);
     // printf("%d\n", numberOfMessages);
     for (int i = 0; i < numberOfMessages-1; i++) {
-        readFile(file, data);
+        readFile(file, data, DATA_SIZE);
         // printf("\n");
         makePacket(packet, data, DATA_SIZE, (++(*sequence) % MAX_SEQUENCE), 8);
         sendMessage(socket, packet, response);
     }
-    readFile(file, data);
+    readFile(file, data, fileSize % DATA_SIZE);
     // printf("%s\n", data);
     // printf("%ld\n", fileSize % DATA_SIZE);
 
@@ -126,11 +126,13 @@ int changeDirectory(char* path) {
 }
 
 int verifyBackup(char* fileName, unsigned char* serverMD5) {
-    unsigned char* clientMD5 = malloc(sizeof(unsigned char)*MD5_DIGEST_LENGTH);
+    unsigned char* clientMD5 = malloc(sizeof(unsigned char)*(MD5_DIGEST_LENGTH + 1));
+    memset(clientMD5, 0, MD5_DIGEST_LENGTH + 1);
     if (!getMD5Hash(fileName, clientMD5)) {
         printf("Erro ao abrir o arquivo.");
         return -1;
     }
+
     for (int i = 0; i < MD5_DIGEST_LENGTH; i++) {
         printf("%02x", clientMD5[i]);
     }
@@ -159,6 +161,7 @@ int getMD5Hash(char* fileName, unsigned char* MD5Hash) {
     }
     
     unsigned char* data = malloc(sizeof(unsigned char) * BUFFER_SIZE);
+    memset(data, 0, BUFFER_SIZE);
     MD5_CTX* md5CTX = malloc(sizeof(MD5_CTX));
     MD5_Init(md5CTX);
     size_t bytes_read;
@@ -190,14 +193,12 @@ int sendFile(int socket, packet_t* sentMessage, packet_t* receivedMessage, char*
     int numberOfMessages = findNumberOfMessages(fileSize);
     printf("%d\n", numberOfMessages);
     for (int i = 0; i < numberOfMessages-1; i++) {
-        readFile(file, data);
+        readFile(file, data, DATA_SIZE);
         // printf("\n");
         makePacket(sentMessage, data, DATA_SIZE, (++(*sequence) % MAX_SEQUENCE), 8);
         sendMessage(socket, sentMessage, receivedMessage);
     }
-    readFile(file, data);
-    printf("%s\n", data);
-    printf("%ld\n", fileSize % DATA_SIZE);
+    readFile(file, data, fileSize % DATA_SIZE);
 
     makePacket(sentMessage, data, (fileSize % DATA_SIZE), (++(*sequence) % MAX_SEQUENCE), 8);
     sendMessage(socket, sentMessage, receivedMessage);

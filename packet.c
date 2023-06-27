@@ -25,36 +25,52 @@ void bufferToPacket(packet_t* packet, unsigned char* buffer) {
     for (int i = 0; i < packet->size; i++) {
         packet->data[i] = buffer[i + 4];
     }
-    packet->vrc = buffer[packet->size + 4];
     #else
     packet->size = buffer[1] >> 2;
     packet->sequence = buffer[1] << 4 | buffer[2] >> 4;
     packet->type = buffer[2] & 0x0F;
-    for (int i = 0; i < packet->size; i++) {
+    // memcpy(packet->data, buffer+3, size);
+    int i;
+    for (i = 0; i < packet->size; i++) {
         packet->data[i] = buffer[i + 3];
     }
-    packet->vrc = buffer[packet->size + 3];
+    for (; i < MESSAGE_SIZE - 5; i++) {
+        // printf("Segundo for: %d\n", i);
+        packet->data[i] = 0;
+    }
     #endif
+    packet->vrc = buffer[MESSAGE_SIZE - 1];
 }
 
 unsigned char* packetToBuffer(packet_t* packet) {
+    unsigned char* buffer = malloc(sizeof(unsigned char) * 68);
     #ifdef LOOPBACK
-    unsigned char* buffer = malloc(sizeof(unsigned char) * (packet->size+5));
+    // unsigned char* buffer = malloc(sizeof(unsigned char) * (packet->size+5));
     buffer[0] = packet->startDelimiter;
     buffer[1] = packet->origin;
     buffer[2] = packet->size << 2 | packet->sequence >> 4;
     buffer[3] = packet->sequence << 4 | packet->type;
-    for (int i = 0; i < packet->size; i++) {
+    int i;
+    for (i = 0; i < packet->size; i++) {
+        // printf("Primeiro for: %d\n", i);
         buffer[i + 4] = packet->data[i];
     }
-    buffer[packet->size + 4] = packet->vrc;
+    for (; i < MESSAGE_SIZE - 5; i++) {
+        // printf("Segundo for: %d\n", i);
+        buffer[i + 4] = 0;
+    }
+    buffer[MESSAGE_SIZE - 1] = packet->vrc;
     #else
-    unsigned char* buffer = malloc(sizeof(unsigned char) * (packet->size+5));
+    // unsigned char* buffer = malloc(sizeof(unsigned char) * (packet->size+4));
     buffer[0] = packet->startDelimiter;
     buffer[1] = packet->size << 2 | packet->sequence >> 4;
     buffer[2] = packet->sequence << 4 | packet->type;
-    for (int i = 0; i < packet->size; i++) {
+    int i;
+    for (i = 0; i < packet->size; i++) {
         buffer[i + 3] = packet->data[i];
+    }
+    for (; i < MESSAGE_SIZE; i++) {
+        buffer[i + 3] = 0;
     }
     buffer[packet->size + 3] = packet->vrc;
     #endif
@@ -173,7 +189,7 @@ int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage,
         }
 
         // Sends an ACK if the sequence number received is lower than the expected
-        if ((receivedMessage->sequence == (*sequence - 1)) || (receivedMessage->sequence == 63 && sequence == 0)) {
+        if ((receivedMessage->sequence == (*sequence - 1)) || (receivedMessage->sequence == 63 && *sequence == 0)) {
             sendResponse(socket, sentMessage, receivedMessage, 14);
             return 0;
         }

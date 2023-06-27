@@ -4,14 +4,17 @@
 #define START_DELIMITER '~'
 
 #ifdef LOOPBACK
-#define MESSAGE_SIZE 69
+#define MESSAGE_SIZE 68
+#define HEADER_SIZE 5
 #else
 #define MESSAGE_SIZE 68
+#define HEADER_SIZE 4
 #endif
 
 #define DATA_SIZE 63
 #define MAX_SEQUENCE 64
 #define BUFFER_SIZE 1024
+
 
 // types:
 // 0000 - backup 1 arq
@@ -37,7 +40,7 @@ struct packet {
     unsigned int size:6;
     unsigned int sequence:6;
     unsigned int type:4;
-    unsigned char data[DATA_SIZE + 1];
+    unsigned char data[DATA_SIZE];
     unsigned char vrc:8;
 };
 typedef struct packet packet_t;

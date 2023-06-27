@@ -13,19 +13,21 @@
 
 int main(int argc, char **argv)
 {
-    unsigned char *data = malloc(sizeof(unsigned char) * DATA_SIZE);
-    FILE *file;
+    unsigned char* data = malloc(sizeof(unsigned char) * DATA_SIZE);
+    FILE* file;
 
     int socket = rawSocketConnection(ETHERNET);
-    packet_t *sentMessage = malloc(69);
+    packet_t* sentMessage = malloc(sizeof(packet_t));
     #ifdef LOOPBACK
     sentMessage->origin = 1;
     #endif
-    packet_t *receivedMessage = malloc(69);
+    packet_t* receivedMessage = malloc(sizeof(packet_t));
 
     int sequence = -1;
 
-    unsigned char *serverMD5;
+    unsigned char* serverMD5;
+    unsigned char* path;
+    unsigned char* fileName;
 
     while (1) {
         receiveMessage(socket, sentMessage, receivedMessage, &sequence, ID);
@@ -42,7 +44,11 @@ int main(int argc, char **argv)
                 sendFile(socket, sentMessage, receivedMessage, (char*) receivedMessage->data, &sequence);
                 break;
             case 4:
-                if (changeDirectory((char*) receivedMessage->data)) {
+                path = malloc(sizeof(unsigned char) * (receivedMessage->size + 1));
+                memset(path, 0, receivedMessage->size + 1);
+                memcpy(path, receivedMessage->data, receivedMessage->size);
+                printf("Path: %s\n", path);
+                if (changeDirectory((char*) path)) {
                     sendResponse(socket, sentMessage, receivedMessage, 14);
                 } else {
                     // Erro
@@ -52,7 +58,10 @@ int main(int argc, char **argv)
                 break;
             case 5:
                 serverMD5 = malloc(sizeof(unsigned char)*MD5_DIGEST_LENGTH);
-                if (getMD5Hash((char*) receivedMessage->data, serverMD5)) {
+                fileName = malloc(sizeof(unsigned char) * (receivedMessage->size + 1));
+                memset(fileName, 0, receivedMessage->size + 1);
+                memcpy(fileName, receivedMessage->data, receivedMessage->size);
+                if (getMD5Hash((char*) fileName, serverMD5)) {
                     sendResponse(socket, sentMessage, receivedMessage, 14);
                 } else {
                     // Erro
@@ -63,6 +72,7 @@ int main(int argc, char **argv)
                 printf("Sent message:\n");
                 printPacket(sentMessage);
                 free(serverMD5);
+                free(fileName);
                 break;
             case 8:
                 for (int i = 0; i < receivedMessage->size; i++) {
@@ -86,7 +96,6 @@ int main(int argc, char **argv)
     free(data);
     free(sentMessage);
     free(receivedMessage);
-    free(serverMD5);
 
     return 0;
 }

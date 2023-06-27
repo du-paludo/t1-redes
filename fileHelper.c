@@ -18,8 +18,8 @@ int findNumberOfMessages(long fileSize) {
     return numberOfMessages;
 }
 
-void readFile(FILE* file, unsigned char *buffer) {
-    fread(buffer, sizeof(unsigned char), DATA_SIZE, file);
+void readFile(FILE* file, unsigned char* data, int size) {
+    fread(data, sizeof(unsigned char), size, file);
     // printf("%s", buffer);
 }
 
