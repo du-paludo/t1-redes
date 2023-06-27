@@ -1,4 +1,4 @@
-FLAGS = -Wall -std=c99 -lm -lcrypto -lssl
+FLAGS = -Wall -std=c99 -lm -lcrypto -lssl -DLOOPBACK
 OBJS = rawSocketConnection.o packet.o fileHelper.o backup.o
 
 # .PHONY: all debug clean purge

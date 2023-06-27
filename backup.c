@@ -77,25 +77,19 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
     int vrc;
     unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
 
-    while (1) {
-        if (recv(socket, buffer, MESSAGE_SIZE, 0)) {
-            bufferToPacket(receivedMessage, buffer);
-            if (checkIntegrity(socket, sentMessage, receivedMessage, sequence, 0)) {
-                switch (receivedMessage->type) {
-                    case 8:
-                        printf("Data received\n");
-                        fwrite(data, sizeof(char), receivedMessage->size, file);
-                        sendAck(socket, sentMessage, receivedMessage);
-                        break;
-                    case 9:
-                        printf("End of file\n");
-                        sendAck(socket, sentMessage, receivedMessage);
-                        fclose(file);
-                        free(data);
-                        return;
-                }
-            }
-        }
+    receiveMessage(socket, sentMessage, receivedMessage, sequence, 0);
+    switch (receivedMessage->type) {
+        case 8:
+            printf("Data received\n");
+            fwrite(data, sizeof(char), receivedMessage->size, file);
+            sendResponse(socket, sentMessage, receivedMessage, 14);
+            break;
+        case 9:
+            printf("End of file\n");
+            sendResponse(socket, sentMessage, receivedMessage, 14);
+            fclose(file);
+            free(data);
+            return;
     }
 
     free(buffer);
@@ -118,9 +112,10 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
 //     sendMessage(socket, packet, response);
 // }
 
-void changeDirectory(char* path) {
+int changeDirectory(char* path) {
     if (chdir(path) != 0) {
         printf("Directory %s doesn't exist\n", path);
+        return 0;
     }
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -128,10 +123,15 @@ void changeDirectory(char* path) {
     } else {
         perror("getcwd() error");
     }
+    return 1;
 }
 
-int verifyBackup(char* fileName, unsigned char* clientMD5, unsigned char* serverMD5) {
-    getMD5Hash(fileName, clientMD5);
+int verifyBackup(char* fileName, unsigned char* serverMD5) {
+    unsigned char* clientMD5 = malloc(sizeof(unsigned char)*MD5_DIGEST_LENGTH);
+    if (!getMD5Hash(fileName, clientMD5)) {
+        printf("Erro ao abrir o arquivo.");
+        return -1;
+    }
     for (int i = 0; i < MD5_DIGEST_LENGTH; i++) {
         printf("%02x", clientMD5[i]);
     }
@@ -143,23 +143,24 @@ int verifyBackup(char* fileName, unsigned char* clientMD5, unsigned char* server
 
     if (strcmp((char*) clientMD5, (char*) serverMD5) == 0) {
         printf("Arquivo no servidor está igual ao arquivo no cliente.\n");
+        free(clientMD5);
         return 1;
     } else {
         printf("Arquivo no servidor está diferente do arquivo no cliente.\n");
+        free(clientMD5);
         return 0;
     }
 }
 
-void getMD5Hash(char* fileName, unsigned char* MD5Hash) {
+int getMD5Hash(char* fileName, unsigned char* MD5Hash) {
     FILE* file = fopen(fileName, "rb");
     if (!file) {
         printf("Erro ao abrir o arquivo.");
-        return;
+        return 0;
     }
     
     unsigned char* data = malloc(sizeof(unsigned char) * BUFFER_SIZE);
-
-    MD5_CTX* md5CTX;
+    MD5_CTX* md5CTX = malloc(sizeof(MD5_CTX));
     MD5_Init(md5CTX);
     size_t bytes_read;
 
@@ -170,7 +171,10 @@ void getMD5Hash(char* fileName, unsigned char* MD5Hash) {
     MD5_Final(MD5Hash, md5CTX);
 
     fclose(file);
+    free(md5CTX);
     free(data);
+
+    return 1;
 }
 
 int sendFile(int socket, packet_t* sentMessage, packet_t* receivedMessage, char* fileName, int* sequence) {

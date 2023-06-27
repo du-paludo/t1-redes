@@ -65,18 +65,8 @@ unsigned char* packetToBuffer(packet_t* packet) {
     return buffer;
 }
 
-
-void sendAck(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
-    makePacket(sentMessage, NULL, 0, receivedMessage->sequence, 14);
-    printf("\nSent message:\n");
-    printPacket(sentMessage);
-    unsigned char* buffer = packetToBuffer(sentMessage);
-    send(socket, buffer, MESSAGE_SIZE, 0);
-    free(buffer);
-}
-
-void sendNack(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
-    makePacket(sentMessage, NULL, 0, receivedMessage->sequence, 15);
+void sendResponse(int socket, packet_t* sentMessage, packet_t* receivedMessage, int type) {
+    makePacket(sentMessage, NULL, 0, receivedMessage->sequence, type);
     printf("\nSent message:\n");
     printPacket(sentMessage);
     unsigned char* buffer = packetToBuffer(sentMessage);
@@ -109,6 +99,11 @@ int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMes
                             free(sendBuffer);
                             free(receivedBuffer);
                             return 1;
+                        case 12:
+                            printf("Error in operation\n");
+                            free(sendBuffer);
+                            free(receivedBuffer);
+                            return 0;
                         case 14:
                             printf("ACK received\n");
                             free(sendBuffer);
@@ -127,10 +122,10 @@ int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMes
             printf("Timeout\n");
         }
         send(socket, sendBuffer, MESSAGE_SIZE, 0);
-        free(sendBuffer);
-        free(receivedBuffer);
         printPacket(sentMessage);
     }
+    free(sendBuffer);
+    free(receivedBuffer);
     return 0;
 }
 
@@ -179,19 +174,34 @@ int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage,
 
         // Sends an ACK if the sequence number received is lower than the expected
         if ((receivedMessage->sequence == (*sequence - 1)) || (receivedMessage->sequence == 63 && sequence == 0)) {
-            sendAck(socket, sentMessage, receivedMessage);
+            sendResponse(socket, sentMessage, receivedMessage, 14);
             return 0;
         }
+
         // Sends an ACK if the sequence number received is higher than the expected
-        else if ((receivedMessage->sequence > (*sequence + 1) % 64) || (receivedMessage->vrc != vrc)) {
-            sendNack(socket, sentMessage, receivedMessage);
+        if ((receivedMessage->sequence > (*sequence + 1) % 64) || (receivedMessage->vrc != vrc)) {
+            sendResponse(socket, sentMessage, receivedMessage, 15);
             return 0;
         }
 
         printf("\nReceived message:\n");
         printPacket(receivedMessage);
+        *sequence = receivedMessage->sequence;
 
         return 1;
     }
     return 0;
+}
+
+void receiveMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id) {
+    unsigned char* buffer = malloc(sizeof(unsigned char)*MESSAGE_SIZE);
+    while (1) {
+        if (recv(socket, buffer, MESSAGE_SIZE, 0)) {
+            bufferToPacket(receivedMessage, buffer);
+            if (checkIntegrity(socket, sentMessage, receivedMessage, sequence, id)) {
+                free(buffer);
+                return;
+            }
+        }
+    }
 }

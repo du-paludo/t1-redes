@@ -9,7 +9,7 @@
 #include "backup.h"
 #include <openssl/md5.h>
 
-#define ETHERNET "enp3s0"
+#define ETHERNET "lo"
 #define TAM_INPUT 100
 #define MAX_SIZE 6
 #define ID 0
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     while (1) {
         input = calloc(TAM_INPUT, sizeof(char));
         fgets(input, TAM_INPUT, stdin);
-        input[strcspn(input, "\n")] = 0;
+        input[strcspn(input, "\n")] = '\0';
         capacity = split(input, ' ', &inputParsed);
         free(input);
         if (inputParsed[0] == NULL) {
@@ -69,9 +69,15 @@ int main(int argc, char** argv) {
             char* fileName = inputParsed[1];
             makePacket(sentMessage, (unsigned char*) fileName, strlen(fileName), (++sequence % MAX_SEQUENCE), 5);
             sendMessage(socket, sentMessage, receivedMessage);
-            // packetToBuffer(receivedMessage, data);
-            unsigned char* serverMD5 = receivedMessage->data;
-            verifyBackup(fileName, clientMD5, serverMD5);
+            while (1) {
+                receiveMessage(socket, sentMessage, receivedMessage, &sequence, ID);
+                if (receivedMessage->type == 7) {
+                    sendResponse(socket, sentMessage, receivedMessage, 14);
+                    unsigned char* serverMD5 = receivedMessage->data;
+                    verifyBackup(fileName, serverMD5);
+                    break;
+                }
+            }
         }
         else if (!(strcmp(inputParsed[0], "setdir"))) {
             char* path = inputParsed[1];

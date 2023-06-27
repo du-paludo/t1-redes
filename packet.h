@@ -37,16 +37,14 @@ struct packet {
     unsigned int size:6;
     unsigned int sequence:6;
     unsigned int type:4;
-    unsigned char data[DATA_SIZE];
+    unsigned char data[DATA_SIZE + 1];
     unsigned char vrc:8;
 };
 typedef struct packet packet_t;
 
 void makePacket(packet_t* packet, unsigned char *data, int size, int sequence, int type);
 
-void sendAck(int socket, packet_t* sentMessage, packet_t* receivedMessage);
-
-void sendNack(int socket, packet_t* sentMessage, packet_t* receivedMessage);
+void sendResponse(int socket, packet_t* sentMessage, packet_t* receivedMessage, int type);
 
 int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMessage);
 
@@ -61,5 +59,7 @@ void printPacket(packet_t* packet);
 void sendMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage);
 
 int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id);
+
+void receiveMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id);
 
 #endif
