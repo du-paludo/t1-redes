@@ -14,7 +14,7 @@ int makeBackup(int socket, packet_t* packet, packet_t* response, char* fileName,
     unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
 
     if (!file) {
-        printf("Erro ao abrir o arquivo.\n");
+        printf("Erro ao abrir o arquivo.");
         return -1;
     }
     makePacket(packet, (unsigned char*) fileName, strlen(fileName) + 1, (++(*sequence) % MAX_SEQUENCE), 0);
@@ -79,7 +79,7 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
                 memcpy(fileName, receivedMessage->data, receivedMessage->size);
                 file = fopen((char*) fileName, "wb");
                 if (!file) {
-                    printf("Erro ao abrir o arquivo.\n");
+                    printf("Erro ao abrir o arquivo.");
                     return;
                 }
                 free(fileName);
@@ -98,10 +98,6 @@ void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage,
                 break;
             case 10:
                 printf("End of group\n");
-                sendResponse(socket, sentMessage, receivedMessage, 14);
-                return;
-            case 12:
-                printf("Arquivo inexistente\n");
                 sendResponse(socket, sentMessage, receivedMessage, 14);
                 return;
         }
@@ -126,6 +122,7 @@ int verifyBackup(char* fileName, unsigned char* serverMD5) {
     unsigned char* clientMD5 = malloc(sizeof(unsigned char)*(MD5_DIGEST_LENGTH + 1));
     memset(clientMD5, 0, MD5_DIGEST_LENGTH + 1);
     if (!getMD5Hash(fileName, clientMD5)) {
+        printf("Erro ao abrir o arquivo.");
         return -1;
     }
 
@@ -152,7 +149,7 @@ int verifyBackup(char* fileName, unsigned char* serverMD5) {
 int getMD5Hash(char* fileName, unsigned char* MD5Hash) {
     FILE* file = fopen(fileName, "rb");
     if (!file) {
-        printf("Erro ao abrir o arquivo.\n");
+        printf("Erro ao abrir o arquivo.");
         return 0;
     }
     
@@ -181,7 +178,7 @@ int sendFile(int socket, packet_t* sentMessage, packet_t* receivedMessage, char*
     unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
 
     if (!file) {
-        printf("Erro ao abrir o arquivo.\n");
+        printf("Erro ao abrir o arquivo.");
         return -1;
     }
 
