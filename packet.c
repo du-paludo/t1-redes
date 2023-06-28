@@ -204,7 +204,6 @@ int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage,
         printf("\nReceived message:\n");
         printPacket(receivedMessage);
         *sequence = receivedMessage->sequence;
-        *nackSequence = 0;
 
         return 1;
     }
