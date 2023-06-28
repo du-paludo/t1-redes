@@ -193,11 +193,12 @@ int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage,
         if ((receivedMessage->sequence > (*sequence + 1) % 64) || (receivedMessage->vrc != vrc)) {
             if (*nackSequence == 3) {
                 sendResponse(socket, sentMessage, receivedMessage, 14);
+                return 1;
             } else {
                 sendResponse(socket, sentMessage, receivedMessage, 15);
                 (*nackSequence)++;
+                return 0;
             }
-            return 0;
         }
 
         printf("\nReceived message:\n");
