@@ -28,10 +28,18 @@ void freeInputParsed(char** inputParsed, int capacity) {
 int getCommand(char* input, char** inputParsed) {
     int capacity = 0;
 
+    if (input[0] == '\0') {
+        return capacity;
+    }
+
     char* token = strtok(input, " ");
     inputParsed[0] = malloc(sizeof(char) * (strlen(token)+1));
     strcpy(inputParsed[0], token);
     capacity++;
+
+    if (token == NULL) {
+        return capacity;
+    }
 
     token = strtok(NULL, " ");
     if (token != NULL) {
@@ -76,18 +84,30 @@ int main(int argc, char** argv) {
         input[strcspn(input, "\n")] = '\0';
         inputParsed = malloc(2 * sizeof(char*));
         capacity = getCommand(input, inputParsed);
-        // capacity = split(input, ' ', &inputParsed);
-        if (inputParsed[0] == NULL) {
+        if (capacity == 0) {
             freeInputParsed(inputParsed, capacity);
             continue;
         }
         else if (!(strcmp(inputParsed[0], "cd"))) {
+            if (capacity == 1) {
+                printf("Parâmetro nulo\n");
+                freeInputParsed(inputParsed, capacity);
+                continue;
+            }
             changeDirectory(inputParsed[1]);
         }
         else if (!(strcmp(inputParsed[0], "backup"))) {
+            if (capacity == 1) {
+                printf("Parâmetro nulo\n");
+                freeInputParsed(inputParsed, capacity);
+                continue;
+            }
             globbuf = malloc(sizeof(glob_t));
             glob(inputParsed[1], 0, NULL, globbuf);
-            if (globbuf->gl_pathc == 1) {
+            if (globbuf->gl_pathc == 0) {
+                printf("Arquivo inexistente\n");
+            }
+            else if (globbuf->gl_pathc == 1) {
                 makeBackup(socket, sentMessage, receivedMessage, globbuf->gl_pathv[0], &sequence);
             } else {
                 makeMultipleBackup(socket, sentMessage, receivedMessage, globbuf, &sequence);
@@ -95,10 +115,20 @@ int main(int argc, char** argv) {
             free(globbuf);
         }
         else if (!(strcmp(inputParsed[0], "restore"))) {
+            if (capacity == 1) {
+                printf("Parâmetro nulo\n");
+                freeInputParsed(inputParsed, capacity);
+                continue;
+            }
             char* pattern = inputParsed[1];
             restoreBackup(socket, sentMessage, receivedMessage, pattern, &sequence);
         }
         else if (!(strcmp(inputParsed[0], "verify"))) {
+            if (capacity == 1) {
+                printf("Parâmetro nulo\n");
+                freeInputParsed(inputParsed, capacity);
+                continue;
+            }
             char* fileName = inputParsed[1];
             makePacket(sentMessage, (unsigned char*) fileName, strlen(fileName), (++sequence % MAX_SEQUENCE), 5);
             sendMessage(socket, sentMessage, receivedMessage);
@@ -116,6 +146,11 @@ int main(int argc, char** argv) {
             }
         }
         else if (!(strcmp(inputParsed[0], "setdir"))) {
+            if (capacity == 1) {
+                printf("Parâmetro nulo\n");
+                freeInputParsed(inputParsed, capacity);
+                continue;
+            }
             char* path = inputParsed[1];
             makePacket(sentMessage, (unsigned char*) path, strlen(path), (++sequence % MAX_SEQUENCE), 4);
             strcat((char*) serverPath, path);

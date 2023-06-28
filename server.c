@@ -60,6 +60,11 @@ int main(int argc, char **argv)
                 sendResponse(socket, sentMessage, receivedMessage, 14);
                 globbuf = malloc(sizeof(glob_t));
                 glob((const char*) receivedMessage->data, 0, NULL, globbuf);
+                if (globbuf->gl_pathc == 0) {
+                    // Erro
+                    sendResponse(socket, sentMessage, receivedMessage, 12);
+                    break;
+                }
                 printf("globbuf->gl_pathc: %ld\n", globbuf->gl_pathc);
                 for (int i = 0; i < globbuf->gl_pathc; i++) {
                     sendFile(socket, sentMessage, receivedMessage, globbuf->gl_pathv[i], &sequence);
