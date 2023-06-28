@@ -96,12 +96,10 @@ int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMes
     unsigned char* receivedBuffer = malloc(sizeof(unsigned char) * MESSAGE_SIZE);
 
     while (1) {
-        start = time(NULL);
-        while (time(NULL) - start < 10) {
-            if (recv(socket, receivedBuffer, MESSAGE_SIZE, 0) == -1) {
-                printf("Timeout!\n");
-                send(socket, sendBuffer, MESSAGE_SIZE, 0);
-            }
+        if (recv(socket, receivedBuffer, MESSAGE_SIZE, 0) == -1) {
+            printf("Timeout!\n");
+            send(socket, sendBuffer, MESSAGE_SIZE, 0);
+        } else {
             bufferToPacket(receivedMessage, receivedBuffer);
             #ifdef LOOPBACK
             if (receivedMessage->startDelimiter == '~' && receivedMessage->origin != sentMessage->origin)
@@ -137,11 +135,6 @@ int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMes
                 }
             }
         }
-        if (time(NULL) - start >= 1) {
-            printf("Timeout\n");
-        }
-        send(socket, sendBuffer, MESSAGE_SIZE, 0);
-        printPacket(sentMessage);
     }
     free(sendBuffer);
     free(receivedBuffer);
