@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/time.h>
 #include <glob.h>
 #include "rawSocketConnection.h"
 #include "packet.h"
@@ -45,6 +47,11 @@ int getCommand(char* input, char** inputParsed) {
 int main(int argc, char** argv) {
     int socket;
     socket = rawSocketConnection(ETHERNET);
+
+    struct timeval tv;
+    tv.tv_sec = 2;
+    tv.tv_usec = 0;
+    setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char*) &tv, sizeof(tv));
 
     char* input;
     char** inputParsed;

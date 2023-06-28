@@ -2,13 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/time.h>
 #include "rawSocketConnection.h"
 #include "fileHelper.h"
 #include "packet.h"
 #include "backup.h"
 #include <openssl/md5.h>
 
+#ifdef LOOPBACK
 #define ETHERNET "lo"
+#else
+#define ETHERNET "enp3s0"
+#endif
 #define ID 1
 
 int main(int argc, char **argv)
@@ -17,6 +23,11 @@ int main(int argc, char **argv)
     FILE* file;
 
     int socket = rawSocketConnection(ETHERNET);
+    struct timeval tv;
+    tv.tv_sec = 2;
+    tv.tv_usec = 0;
+    setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char*) &tv, sizeof(tv));
+
     packet_t* sentMessage = malloc(sizeof(packet_t));
     #ifdef LOOPBACK
     sentMessage->origin = 1;

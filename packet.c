@@ -97,7 +97,7 @@ int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMes
 
     while (1) {
         start = time(NULL);
-        while (time(NULL) - start < 1) {
+        while (time(NULL) - start < 10) {
             recv(socket, receivedBuffer, MESSAGE_SIZE, 0);
             bufferToPacket(receivedMessage, receivedBuffer);
             #ifdef LOOPBACK
