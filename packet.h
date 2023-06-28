@@ -7,7 +7,7 @@
 #define MESSAGE_SIZE 68
 #define HEADER_SIZE 5
 #else
-#define MESSAGE_SIZE 68
+#define MESSAGE_SIZE 67
 #define HEADER_SIZE 4
 #endif
 
@@ -36,7 +36,7 @@
 
 struct packet {
     unsigned char startDelimiter:8;  // 011111110
-    unsigned int origin:8;
+    // unsigned int origin:8;
     unsigned int size:6;
     unsigned int sequence:6;
     unsigned int type:4;

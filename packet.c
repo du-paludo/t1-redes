@@ -43,7 +43,7 @@ void bufferToPacket(packet_t* packet, unsigned char* buffer) {
 }
 
 unsigned char* packetToBuffer(packet_t* packet) {
-    unsigned char* buffer = malloc(sizeof(unsigned char) * 68);
+    unsigned char* buffer = malloc(sizeof(unsigned char) * MESSAGE_SIZE);
     #ifdef LOOPBACK
     // unsigned char* buffer = malloc(sizeof(unsigned char) * (packet->size+5));
     buffer[0] = packet->startDelimiter;
@@ -69,10 +69,10 @@ unsigned char* packetToBuffer(packet_t* packet) {
     for (i = 0; i < packet->size; i++) {
         buffer[i + 3] = packet->data[i];
     }
-    for (; i < MESSAGE_SIZE; i++) {
+    for (; i < MESSAGE_SIZE - 4; i++) {
         buffer[i + 3] = 0;
     }
-    buffer[packet->size + 3] = packet->vrc;
+    buffer[MESSAGE_SIZE - 1] = packet->vrc;
     #endif
     // printf("\nBuffer:\n");
     // for (int i = 0; i < packet->size + 4; i++) {

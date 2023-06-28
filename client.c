@@ -9,7 +9,7 @@
 #include "backup.h"
 #include <openssl/md5.h>
 
-#define ETHERNET "lo"
+#define ETHERNET "enp3s0"
 #define TAM_INPUT 200
 #define ID 0
 
