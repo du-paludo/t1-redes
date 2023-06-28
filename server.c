@@ -62,7 +62,8 @@ int main(int argc, char **argv)
                 glob((const char*) receivedMessage->data, 0, NULL, globbuf);
                 if (globbuf->gl_pathc == 0) {
                     // Erro
-                    sendResponse(socket, sentMessage, receivedMessage, 12);
+                    makePacket(sentMessage, NULL, 0, (++sequence % MAX_SEQUENCE), 12);
+                    sendMessage(socket, sentMessage, receivedMessage);
                     break;
                 }
                 printf("globbuf->gl_pathc: %ld\n", globbuf->gl_pathc);
