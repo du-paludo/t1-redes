@@ -91,7 +91,6 @@ void sendResponse(int socket, packet_t* sentMessage, packet_t* receivedMessage, 
 }
 
 int waitResponseTimeout(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
-    time_t start;
     unsigned char* sendBuffer = packetToBuffer(sentMessage);
     unsigned char* receivedBuffer = malloc(sizeof(unsigned char) * MESSAGE_SIZE);
 
@@ -168,7 +167,7 @@ void sendMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage) {
     waitResponseTimeout(socket, sentMessage, receivedMessage);
 }
 
-int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id) {
+int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id, int* nackSequence) {
     if (receivedMessage->startDelimiter == '~') {
         unsigned char vrc = calculateVRC(receivedMessage);
 
@@ -192,25 +191,31 @@ int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage,
 
         // Sends an ACK if the sequence number received is higher than the expected
         if ((receivedMessage->sequence > (*sequence + 1) % 64) || (receivedMessage->vrc != vrc)) {
-            sendResponse(socket, sentMessage, receivedMessage, 15);
+            if (*nackSequence == 3) {
+                sendResponse(socket, sentMessage, receivedMessage, 14);
+            } else {
+                sendResponse(socket, sentMessage, receivedMessage, 15);
+                (*nackSequence)++;
+            }
             return 0;
         }
 
         printf("\nReceived message:\n");
         printPacket(receivedMessage);
         *sequence = receivedMessage->sequence;
+        *nackSequence = 0;
 
         return 1;
     }
     return 0;
 }
 
-void receiveMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id) {
+void receiveMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id, int* nackSequence) {
     unsigned char* buffer = malloc(sizeof(unsigned char)*MESSAGE_SIZE);
     while (1) {
         if (recv(socket, buffer, MESSAGE_SIZE, 0)) {
             bufferToPacket(receivedMessage, buffer);
-            if (checkIntegrity(socket, sentMessage, receivedMessage, sequence, id)) {
+            if (checkIntegrity(socket, sentMessage, receivedMessage, sequence, id, nackSequence)) {
                 free(buffer);
                 return;
             }

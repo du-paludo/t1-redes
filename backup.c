@@ -65,13 +65,14 @@ void makeMultipleBackup(int socket, packet_t* sentMessage, packet_t* receivedMes
 void restoreBackup(int socket, packet_t* sentMessage, packet_t* receivedMessage, char* pattern, int* sequence) {
     makePacket(sentMessage, (unsigned char*) pattern, strlen(pattern) + 1, (++(*sequence) % MAX_SEQUENCE), 3);
     sendMessage(socket, sentMessage, receivedMessage);
+    int nackSequence = 0;
     
     // unsigned char* buffer = malloc(sizeof(unsigned char)*MESSAGE_SIZE);
     // unsigned char* data = malloc(sizeof(unsigned char)*DATA_SIZE);
     unsigned char* fileName;
     FILE* file;
     while (1) {
-        receiveMessage(socket, sentMessage, receivedMessage, sequence, 0);
+        receiveMessage(socket, sentMessage, receivedMessage, sequence, 0, &nackSequence);
         switch (receivedMessage->type) {
             case 6:
                 fileName = calloc((receivedMessage->size + 1), sizeof(unsigned char));

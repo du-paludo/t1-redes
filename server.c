@@ -41,8 +41,10 @@ int main(int argc, char **argv)
     unsigned char* fileName;
     glob_t* globbuf;
 
+    int nackSequence = 0;
+
     while (1) {
-        receiveMessage(socket, sentMessage, receivedMessage, &sequence, ID);
+        receiveMessage(socket, sentMessage, receivedMessage, &sequence, ID, &nackSequence);
         switch (receivedMessage->type) {
             case 0:
                 file = openFile(receivedMessage->data, "wb");

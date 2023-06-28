@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
             makePacket(sentMessage, (unsigned char*) fileName, strlen(fileName), (++sequence % MAX_SEQUENCE), 5);
             sendMessage(socket, sentMessage, receivedMessage);
             while (1) {
-                receiveMessage(socket, sentMessage, receivedMessage, &sequence, ID);
+                receiveMessage(socket, sentMessage, receivedMessage, &sequence, ID, 0);
                 if (receivedMessage->type == 7) {
                     sendResponse(socket, sentMessage, receivedMessage, 14);
                     unsigned char* serverMD5 = malloc(sizeof(unsigned char) * (receivedMessage->size + 1));

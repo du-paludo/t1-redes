@@ -61,8 +61,8 @@ void printPacket(packet_t* packet);
 
 void sendMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage);
 
-int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id);
+int checkIntegrity(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id, int* nackSequence);
 
-void receiveMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id);
+void receiveMessage(int socket, packet_t* sentMessage, packet_t* receivedMessage, int* sequence, int id, int* nackSequence);
 
 #endif
